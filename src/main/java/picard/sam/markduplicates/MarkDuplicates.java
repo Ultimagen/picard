@@ -216,6 +216,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "the BARCODE_TAG option be set to a non null value.  Default null.", optional = true)
     public String MOLECULAR_IDENTIFIER_TAG = null;
 
+    @Argument(doc = "Use specific quality summing strategy for flow based reads. The strategy ensures that the same " +
+            "(and correct) quality value is used for all bases of the same homopolymer. Default false.")
+    public boolean FLOW_QUALITY_SUM_STRATEGY = false;
 
     private SortingCollection<ReadEndsForMarkDuplicates> pairSort;
     private SortingCollection<ReadEndsForMarkDuplicates> fragSort;
@@ -610,7 +613,10 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                                     pairedEnds.orientation == ReadEnds.R);
                         }
 
-                        pairedEnds.score += DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
+                        if ( FLOW_QUALITY_SUM_STRATEGY && isFlow(rec) )
+                            pairedEnds.score += computeFlowDuplicateScore(rec);
+                        else
+                            pairedEnds.score += DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
                         this.pairSort.add(pairedEnds);
                     }
                 }
@@ -646,7 +652,10 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? rec.getUnclippedEnd() : rec.getUnclippedStart();
         ends.orientation = rec.getReadNegativeStrandFlag() ? ReadEnds.R : ReadEnds.F;
         ends.read1IndexInFile = index;
-        ends.score = DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
+        if ( FLOW_QUALITY_SUM_STRATEGY && isFlow(rec) )
+            ends.score = computeFlowDuplicateScore(rec);
+        else
+            ends.score = DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
 
         // Doing this lets the ends object know that it's part of a pair
         if (rec.getReadPairedFlag() && !rec.getMateUnmappedFlag()) {
@@ -1022,5 +1031,49 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
             return compareDifference;
         }
+    }
+
+    private boolean isFlow(SAMRecord rec) {
+        return rec.hasAttribute("tp");
+    }
+
+    private short computeFlowDuplicateScore(SAMRecord rec) {
+
+        Short storedScore = (Short)rec.getTransientAttribute("DuplicateScore");
+        if ( storedScore == null ) {
+            short score = 0;
+
+            score += (short) Math.min(getFlowSumOfBaseQualities(rec), Short.MAX_VALUE / 2);
+
+            score += rec.getReadFailsVendorQualityCheckFlag() ? (short) (Short.MIN_VALUE / 2) : 0;
+            storedScore = score;
+            rec.setTransientAttribute("DuplicateScore", storedScore);
+        }
+
+        return storedScore;
+    }
+
+    private int getFlowSumOfBaseQualities(SAMRecord rec) {
+        int score = 0;
+
+        // access qualities and bases
+        byte[]      quals = rec.getBaseQualities();
+        byte[]      bases = rec.getReadBases();
+
+        // loop on bases, extract qual related to homopolymer from start of homopolymer
+        int         i = 0;
+        byte        lastBase = 0;
+        byte        effectiveQual = 0;
+        for (final byte base : bases ) {
+            if ( base != lastBase )
+                effectiveQual = quals[i];
+            if ( effectiveQual >= 15 )
+                score += effectiveQual;
+            lastBase = base;
+            i++;
+        }
+
+        return score;
+
     }
 }
