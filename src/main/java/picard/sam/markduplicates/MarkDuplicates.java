@@ -219,6 +219,10 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "(and correct) quality value is used for all bases of the same homopolymer. Default false.")
     public boolean FLOW_QUALITY_SUM_STRATEGY = false;
 
+    @Argument(doc = "Make end location of read be significant in considering duplicates, " +
+            "in addition to the start location, which is always significant. Default false.")
+    public boolean FLOW_END_LOCATION_SIGNIFICANT = false;
+
     private SortingCollection<ReadEndsForMarkDuplicates> pairSort;
     private SortingCollection<ReadEndsForMarkDuplicates> fragSort;
     private SortingLongCollection duplicateIndexes;
@@ -662,6 +666,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if (rec.getReadPairedFlag() && !rec.getMateUnmappedFlag()) {
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
+        else if ( FLOW_END_LOCATION_SIGNIFICANT )
+            ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? rec.getUnclippedEnd() : rec.getUnclippedStart();
 
         // Fill in the library ID
         ends.libraryId = libraryIdGenerator.getLibraryId(rec);
@@ -812,6 +818,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if (areComparable) {
             areComparable = lhs.read1ReferenceIndex == rhs.read1ReferenceIndex &&
                     lhs.read1Coordinate == rhs.read1Coordinate &&
+                    lhs.read1Coordinate2 == rhs.read1Coordinate2 &&
                     lhs.orientation == rhs.orientation;
         }
 
