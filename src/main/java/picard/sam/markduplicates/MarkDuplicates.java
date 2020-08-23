@@ -223,8 +223,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "in addition to the start location, which is always significant. Default false.")
     public boolean FLOW_END_LOCATION_SIGNIFICANT = false;
 
-    @Argument(doc = "Use clipped, rather than unclipped, hen considering duplicates. Default false.")
+    @Argument(doc = "Use clipped, rather than unclipped, when considering duplicates. Default false.")
     public boolean FLOW_USE_CLIPPED_LOCATIONS = false;
+
+    @Argument(doc = "Skip first and last homopolymers, when considering duplicates. " +
+            " This argument takes precedence over FLOW_USE_CLIPPED_LOCATIONS. Default false.")
+    public boolean FLOW_SKIP_ENDS_HOMOPOLYMERS = false;
 
     private SortingCollection<ReadEndsForMarkDuplicates> pairSort;
     private SortingCollection<ReadEndsForMarkDuplicates> fragSort;
@@ -661,10 +665,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends = new ReadEndsForMarkDuplicates();
         }
         ends.read1ReferenceIndex = rec.getReferenceIndex();
-        if ( !FLOW_USE_CLIPPED_LOCATIONS )
-            ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? rec.getUnclippedEnd() : rec.getUnclippedStart();
-        else
-            ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? rec.getAlignmentEnd() : rec.getAlignmentStart();
+        ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec) : getSelectedRecordStart(rec);
         ends.orientation = rec.getReadNegativeStrandFlag() ? ReadEnds.R : ReadEnds.F;
         ends.read1IndexInFile = index;
         if ( FLOW_QUALITY_SUM_STRATEGY && isFlow(rec) )
@@ -677,10 +678,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
         else if ( FLOW_END_LOCATION_SIGNIFICANT ) {
-            if ( !FLOW_USE_CLIPPED_LOCATIONS )
-                ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? rec.getUnclippedStart() : rec.getUnclippedStart();
-            else
-                ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? rec.getAlignmentEnd() : rec.getAlignmentStart();
+            ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec) : getSelectedRecordStart(rec);
         }
 
         // Fill in the library ID
@@ -1104,5 +1102,37 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
         return score;
 
+    }
+
+    private int getSelectedRecordStart(final SAMRecord rec) {
+        if ( FLOW_SKIP_ENDS_HOMOPOLYMERS ) {
+            byte[]      bases = rec.getReadBases();
+            byte        hmerBase = bases[0];
+            int         hmerSize = 1;
+            for ( ; hmerSize < bases.length ; hmerSize++ )
+                if (bases[hmerSize] != hmerBase)
+                    break;
+            return rec.getAlignmentStart() + hmerSize;
+        }
+        else if ( FLOW_USE_CLIPPED_LOCATIONS )
+            return rec.getAlignmentStart();
+        else
+            return rec.getUnclippedStart();
+    }
+
+    private int getSelectedRecordEnd(final SAMRecord rec) {
+        if ( FLOW_SKIP_ENDS_HOMOPOLYMERS ) {
+            byte[]      bases = rec.getReadBases();
+            byte        hmerBase = bases[bases.length - 1];
+            int         hmerSize = 1;
+            for ( ; hmerSize < bases.length ; hmerSize++ )
+                if (bases[bases.length - 1 - hmerSize] != hmerBase)
+                    break;
+            return rec.getAlignmentEnd() - hmerSize;
+        }
+        else if ( FLOW_USE_CLIPPED_LOCATIONS )
+            return rec.getAlignmentEnd();
+        else
+            return rec.getUnclippedEnd();
     }
 }
