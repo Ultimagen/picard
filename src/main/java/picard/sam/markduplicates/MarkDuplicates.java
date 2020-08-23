@@ -219,9 +219,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "(and correct) quality value is used for all bases of the same homopolymer. Default false.")
     public boolean FLOW_QUALITY_SUM_STRATEGY = false;
 
-    @Argument(doc = "Make end location of read be significant in considering duplicates, " +
+    @Argument(doc = "Make end location of read be significant when considering duplicates, " +
             "in addition to the start location, which is always significant. Default false.")
     public boolean FLOW_END_LOCATION_SIGNIFICANT = false;
+
+    @Argument(doc = "Use clipped, rather than unclipped, hen considering duplicates. Default false.")
+    public boolean FLOW_USE_CLIPPED_LOCATIONS = false;
 
     private SortingCollection<ReadEndsForMarkDuplicates> pairSort;
     private SortingCollection<ReadEndsForMarkDuplicates> fragSort;
@@ -574,6 +577,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                     } else {
                         final int matesRefIndex = fragmentEnd.read1ReferenceIndex;
                         final int matesCoordinate = fragmentEnd.read1Coordinate;
+                        final int matesCoordinate2 = fragmentEnd.read1Coordinate2;
 
                         // Set orientationForOpticalDuplicates, which always goes by the first then the second end for the strands.  NB: must do this
                         // before updating the orientation later.
@@ -594,6 +598,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                                 (matesRefIndex == pairedEnds.read1ReferenceIndex && matesCoordinate >= pairedEnds.read1Coordinate)) {
                             pairedEnds.read2ReferenceIndex = matesRefIndex;
                             pairedEnds.read2Coordinate = matesCoordinate;
+                            pairedEnds.read2Coordinate2 = matesCoordinate2;
                             pairedEnds.read2IndexInFile = indexForRead;
                             pairedEnds.orientation = ReadEnds.getOrientationByte(pairedEnds.orientation == ReadEnds.R,
                                     rec.getReadNegativeStrandFlag());
@@ -610,9 +615,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                         } else {
                             pairedEnds.read2ReferenceIndex = pairedEnds.read1ReferenceIndex;
                             pairedEnds.read2Coordinate = pairedEnds.read1Coordinate;
+                            pairedEnds.read2Coordinate2 = pairedEnds.read1Coordinate2;
                             pairedEnds.read2IndexInFile = pairedEnds.read1IndexInFile;
                             pairedEnds.read1ReferenceIndex = matesRefIndex;
                             pairedEnds.read1Coordinate = matesCoordinate;
+                            pairedEnds.read1Coordinate2 = matesCoordinate2;
                             pairedEnds.read1IndexInFile = indexForRead;
                             pairedEnds.orientation = ReadEnds.getOrientationByte(rec.getReadNegativeStrandFlag(),
                                     pairedEnds.orientation == ReadEnds.R);
@@ -654,7 +661,10 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends = new ReadEndsForMarkDuplicates();
         }
         ends.read1ReferenceIndex = rec.getReferenceIndex();
-        ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? rec.getUnclippedEnd() : rec.getUnclippedStart();
+        if ( !FLOW_USE_CLIPPED_LOCATIONS )
+            ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? rec.getUnclippedEnd() : rec.getUnclippedStart();
+        else
+            ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? rec.getAlignmentEnd() : rec.getAlignmentStart();
         ends.orientation = rec.getReadNegativeStrandFlag() ? ReadEnds.R : ReadEnds.F;
         ends.read1IndexInFile = index;
         if ( FLOW_QUALITY_SUM_STRATEGY && isFlow(rec) )
@@ -666,8 +676,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if (rec.getReadPairedFlag() && !rec.getMateUnmappedFlag()) {
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
-        else if ( FLOW_END_LOCATION_SIGNIFICANT )
-            ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? rec.getUnclippedEnd() : rec.getUnclippedStart();
+        else if ( FLOW_END_LOCATION_SIGNIFICANT ) {
+            if ( !FLOW_USE_CLIPPED_LOCATIONS )
+                ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? rec.getUnclippedStart() : rec.getUnclippedStart();
+            else
+                ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? rec.getAlignmentEnd() : rec.getAlignmentStart();
+        }
 
         // Fill in the library ID
         ends.libraryId = libraryIdGenerator.getLibraryId(rec);
@@ -824,7 +838,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
         if (areComparable && compareRead2) {
             areComparable = lhs.read2ReferenceIndex == rhs.read2ReferenceIndex &&
-                    lhs.read2Coordinate == rhs.read2Coordinate;
+                    lhs.read2Coordinate == rhs.read2Coordinate &&
+                    lhs.read2Coordinate2 == rhs.read2Coordinate2;
         }
 
         return areComparable;
@@ -1005,6 +1020,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 compareDifference = lhs.read1Coordinate - rhs.read1Coordinate;
             }
             if (compareDifference == 0) {
+                compareDifference = lhs.read1Coordinate2 - rhs.read1Coordinate2;
+            }
+            if (compareDifference == 0) {
                 compareDifference = lhs.orientation - rhs.orientation;
             }
             if (compareDifference == 0) {
@@ -1012,6 +1030,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.read2Coordinate - rhs.read2Coordinate;
+            }
+            if (compareDifference == 0) {
+                compareDifference = lhs.read2Coordinate2 - rhs.read2Coordinate2;
             }
 
             if (compareDifference == 0) {
