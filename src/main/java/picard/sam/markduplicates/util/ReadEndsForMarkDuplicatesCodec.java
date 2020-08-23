@@ -56,11 +56,13 @@ public class ReadEndsForMarkDuplicatesCodec implements SortingCollection.Codec<R
             this.out.writeByte(read.orientation);
             this.out.writeInt(read.read1ReferenceIndex);
             this.out.writeInt(read.read1Coordinate);
+            this.out.writeInt(read.read1Coordinate2);
             this.out.writeLong(read.read1IndexInFile);
             this.out.writeInt(read.read2ReferenceIndex);
 
             if (read.orientation > ReadEnds.R) {
                 this.out.writeInt(read.read2Coordinate);
+                this.out.writeInt(read.read2Coordinate2);
                 this.out.writeLong(read.read2IndexInFile);
             }
 
@@ -89,11 +91,13 @@ public class ReadEndsForMarkDuplicatesCodec implements SortingCollection.Codec<R
             read.orientation = this.in.readByte();
             read.read1ReferenceIndex = this.in.readInt();
             read.read1Coordinate = this.in.readInt();
+            read.read1Coordinate2 = this.in.readInt();
             read.read1IndexInFile = this.in.readLong();
             read.read2ReferenceIndex = this.in.readInt();
 
             if (read.orientation > ReadEnds.R) {
                 read.read2Coordinate = this.in.readInt();
+                read.read2Coordinate2 = this.in.readInt();
                 read.read2IndexInFile = this.in.readLong();
             }
 
