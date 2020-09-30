@@ -1109,9 +1109,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int         ofs = FLOW_USE_CLIPPED_LOCATIONS ? (rec.getAlignmentStart() - rec.getUnclippedStart()) : 0;
             byte        hmerBase = bases[ofs];
             int         hmerSize = 1;
+            int         hmersLeft = 3;      // number of hmer left to trim
             for ( ; hmerSize < bases.length ; hmerSize++ )
-                if (bases[ofs + hmerSize] != hmerBase)
-                    break;
+                if (bases[ofs + hmerSize] != hmerBase) {
+                    if ( --hmersLeft <= 0 )
+                        break;
+                    else
+                        hmerBase = bases[ofs + hmerSize];
+                }
             return (FLOW_USE_CLIPPED_LOCATIONS ? rec.getAlignmentStart() : rec.getUnclippedStart()) + hmerSize;
         }
         else if ( FLOW_USE_CLIPPED_LOCATIONS )
@@ -1126,9 +1131,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int         ofs = FLOW_USE_CLIPPED_LOCATIONS ? (rec.getUnclippedEnd() - rec.getAlignmentEnd()) : 0;
             byte        hmerBase = bases[bases.length - 1 - ofs];
             int         hmerSize = 1;
+            int         hmersLeft = 3;      // number of hmer left to trim
             for ( ; hmerSize < bases.length ; hmerSize++ )
-                if (bases[bases.length - 1 - hmerSize - ofs] != hmerBase)
-                    break;
+                if (bases[bases.length - 1 - hmerSize - ofs] != hmerBase) {
+                    if ( --hmersLeft <= 0 )
+                        break;
+                    else
+                        hmerBase = bases[bases.length - 1 - hmerSize - ofs];
+                }
             return (FLOW_USE_CLIPPED_LOCATIONS ? rec.getAlignmentEnd() : rec.getUnclippedEnd()) - hmerSize;
         }
         else if ( FLOW_USE_CLIPPED_LOCATIONS )
