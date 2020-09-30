@@ -1106,12 +1106,13 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     private int getSelectedRecordStart(final SAMRecord rec) {
         if ( FLOW_SKIP_ENDS_HOMOPOLYMERS ) {
             byte[]      bases = rec.getReadBases();
-            byte        hmerBase = bases[0];
+            int         ofs = FLOW_USE_CLIPPED_LOCATIONS ? (rec.getAlignmentStart() - rec.getUnclippedStart()) : 0;
+            byte        hmerBase = bases[ofs];
             int         hmerSize = 1;
             for ( ; hmerSize < bases.length ; hmerSize++ )
-                if (bases[hmerSize] != hmerBase)
+                if (bases[ofs + hmerSize] != hmerBase)
                     break;
-            return rec.getAlignmentStart() + hmerSize;
+            return (FLOW_USE_CLIPPED_LOCATIONS ? rec.getAlignmentStart() : rec.getUnclippedStart()) + hmerSize;
         }
         else if ( FLOW_USE_CLIPPED_LOCATIONS )
             return rec.getAlignmentStart();
@@ -1122,12 +1123,13 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     private int getSelectedRecordEnd(final SAMRecord rec) {
         if ( FLOW_SKIP_ENDS_HOMOPOLYMERS ) {
             byte[]      bases = rec.getReadBases();
-            byte        hmerBase = bases[bases.length - 1];
+            int         ofs = FLOW_USE_CLIPPED_LOCATIONS ? (rec.getUnclippedEnd() - rec.getAlignmentEnd()) : 0;
+            byte        hmerBase = bases[bases.length - 1 - ofs];
             int         hmerSize = 1;
             for ( ; hmerSize < bases.length ; hmerSize++ )
-                if (bases[bases.length - 1 - hmerSize] != hmerBase)
+                if (bases[bases.length - 1 - hmerSize - ofs] != hmerBase)
                     break;
-            return rec.getAlignmentEnd() - hmerSize;
+            return (FLOW_USE_CLIPPED_LOCATIONS ? rec.getAlignmentEnd() : rec.getUnclippedEnd()) - hmerSize;
         }
         else if ( FLOW_USE_CLIPPED_LOCATIONS )
             return rec.getAlignmentEnd();
