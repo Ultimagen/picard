@@ -439,7 +439,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
     }
 
     @Test
-    public void testFLOW_SKIP_ENDS_HOMOPOLYMERS() {
+    public void testFLOW_SKIP_START_HOMOPOLYMERS() {
         AbstractMarkDuplicatesCommandLineProgramTester tester;
         SAMRecord[]     records;
 
@@ -454,7 +454,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         System.arraycopy("ACGGT".getBytes(), 0, records[1].getReadBases(), 0, 5);
         System.arraycopy("TGGCA".getBytes(), 0, records[1].getReadBases(), records[1].getReadBases().length - 5, 4);
         tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
-        tester.addArg("FLOW_SKIP_ENDS_HOMOPOLYMERS=false");
+        tester.addArg("FLOW_SKIP_START_HOMOPOLYMERS=0");
         tester.runTest();
 
         // Do not use clipped locations (meaning, use unclipped)
@@ -468,7 +468,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         System.arraycopy("ACGGT".getBytes(), 0, records[1].getReadBases(), 0, 5);
         System.arraycopy("TGGCA".getBytes(), 0, records[1].getReadBases(), records[1].getReadBases().length - 5, 4);
         tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
-        tester.addArg("FLOW_SKIP_ENDS_HOMOPOLYMERS=true");
+        tester.addArg("FLOW_SKIP_START_HOMOPOLYMERS=3");
         tester.runTest();
     }
 

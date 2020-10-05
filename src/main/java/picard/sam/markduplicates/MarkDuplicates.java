@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A better duplication marking algorithm that handles all cases including clipped
@@ -224,12 +225,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "in addition to the start location, which is always significant. Default false.")
     public boolean FLOW_END_LOCATION_SIGNIFICANT = false;
 
+    @Argument(doc = "Maximal number of bases of reads ends difference that is marked as match. Default 0.")
+    public int ENDS_READ_UNCERTAINTY = 0;
+
     @Argument(doc = "Use clipped, rather than unclipped, when considering duplicates. Default false.")
     public boolean FLOW_USE_CLIPPED_LOCATIONS = false;
 
-    @Argument(doc = "Skip first and last homopolymers, when considering duplicates. " +
-            " This argument takes precedence over FLOW_USE_CLIPPED_LOCATIONS. Default false.")
-    public boolean FLOW_SKIP_ENDS_HOMOPOLYMERS = false;
+    @Argument(doc = "Skip first N flows, when considering duplicates. Default 0.")
+    public int FLOW_SKIP_START_HOMOPOLYMERS = 0;
 
     private SortingCollection<ReadEndsForMarkDuplicates> pairSort;
     private SortingCollection<ReadEndsForMarkDuplicates> fragSort;
@@ -664,7 +667,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends = new ReadEndsForMarkDuplicates();
         }
         ends.read1ReferenceIndex = rec.getReferenceIndex();
-        ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec) : getSelectedRecordStart(rec);
+        ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, null) : getSelectedRecordStart(rec, null);
         ends.orientation = rec.getReadNegativeStrandFlag() ? ReadEnds.R : ReadEnds.F;
         ends.read1IndexInFile = index;
         if ( FLOW_QUALITY_SUM_STRATEGY && isFlow(rec) )
@@ -677,8 +680,16 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
         else if ( FLOW_END_LOCATION_SIGNIFICANT ) {
-            ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec) : getSelectedRecordStart(rec);
+            AtomicInteger           endUncertainty = new AtomicInteger(ENDS_READ_UNCERTAINTY);
+            ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, endUncertainty) : getSelectedRecordStart(rec, endUncertainty);
+            ends.read2Coordinate2Uncertainty = endUncertainty.intValue();
         }
+
+        log.info(String.format("[%s %b] : %d %d : %d %d : %d %d %d",
+                rec.getReadName(), rec.getReadNegativeStrandFlag(),
+                rec.getUnclippedStart(), rec.getUnclippedEnd(),
+                rec.getAlignmentStart(), rec.getAlignmentEnd(),
+                ends.read1Coordinate, ends.read1Coordinate2, ends.read1Coordinate2Uncertainty));
 
         // Fill in the library ID
         ends.libraryId = libraryIdGenerator.getLibraryId(rec);
@@ -829,14 +840,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if (areComparable) {
             areComparable = lhs.read1ReferenceIndex == rhs.read1ReferenceIndex &&
                     lhs.read1Coordinate == rhs.read1Coordinate &&
-                    lhs.read1Coordinate2 == rhs.read1Coordinate2 &&
+                    Math.abs(lhs.read1Coordinate2 - rhs.read1Coordinate2) <= Math.min(lhs.read1Coordinate2Uncertainty, rhs.read1Coordinate2Uncertainty) &&
                     lhs.orientation == rhs.orientation;
         }
 
         if (areComparable && compareRead2) {
             areComparable = lhs.read2ReferenceIndex == rhs.read2ReferenceIndex &&
                     lhs.read2Coordinate == rhs.read2Coordinate &&
-                    lhs.read2Coordinate2 == rhs.read2Coordinate2;
+                    Math.abs(lhs.read2Coordinate2 - rhs.read2Coordinate2) <= Math.min(lhs.read2Coordinate2Uncertainty, rhs.read2Coordinate2Uncertainty);
         }
 
         return areComparable;
@@ -987,7 +998,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     /**
      * Comparator for ReadEndsForMarkDuplicates that orders by read1 position then pair orientation then read2 position.
      */
-    static class ReadEndsMDComparator implements Comparator<ReadEndsForMarkDuplicates> {
+    private class ReadEndsMDComparator implements Comparator<ReadEndsForMarkDuplicates> {
 
         final boolean useBarcodes;
 
@@ -1018,6 +1029,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.read1Coordinate2 - rhs.read1Coordinate2;
+                if ( Math.abs(compareDifference) <= Math.min(lhs.read1Coordinate2Uncertainty, rhs.read1Coordinate2Uncertainty) )
+                    compareDifference = 0;
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.orientation - rhs.orientation;
@@ -1030,6 +1043,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.read2Coordinate2 - rhs.read2Coordinate2;
+                if ( Math.abs(compareDifference) <= Math.min(lhs.read2Coordinate2Uncertainty, rhs.read2Coordinate2Uncertainty) )
+                    compareDifference = 0;
             }
 
             if (compareDifference == 0) {
@@ -1103,47 +1118,111 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
     }
 
-    private int getSelectedRecordStart(final SAMRecord rec) {
-        if ( FLOW_SKIP_ENDS_HOMOPOLYMERS ) {
+    private int getSelectedRecordStart(final SAMRecord rec, AtomicInteger endUncertainty) {
+        if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
             byte[]      bases = rec.getReadBases();
-            int         ofs = FLOW_USE_CLIPPED_LOCATIONS ? (rec.getAlignmentStart() - rec.getUnclippedStart()) : 0;
+            int         ofs = 0;
             byte        hmerBase = bases[ofs];
+            byte[]      flowOrder = getFlowOrder(rec);
+            int         flowOrderOfs = 0;
+
+            // advance flow order to base
+            if ( flowOrder != null )
+                while ( flowOrder[flowOrderOfs] != hmerBase )
+                    if ( ++flowOrderOfs >= flowOrder.length )
+                        flowOrderOfs = 0;
+
             int         hmerSize = 1;
-            int         hmersLeft = 3;      // number of hmer left to trim
+            int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
             for ( ; hmerSize < bases.length ; hmerSize++ )
                 if (bases[ofs + hmerSize] != hmerBase) {
                     if ( --hmersLeft <= 0 )
                         break;
-                    else
+                    else {
                         hmerBase = bases[ofs + hmerSize];
+                        if ( flowOrder != null ) {
+                            if ( ++flowOrderOfs >= flowOrder.length )
+                                flowOrderOfs = 0;
+                            while ( flowOrder[flowOrderOfs] != hmerBase ) {
+                                hmersLeft--;
+                                if ( ++flowOrderOfs >= flowOrder.length )
+                                    flowOrderOfs = 0;
+                            }
+                            if ( hmersLeft <= 0 )
+                                break;
+                        }
+                    }
                 }
-            return (FLOW_USE_CLIPPED_LOCATIONS ? rec.getAlignmentStart() : rec.getUnclippedStart()) + hmerSize;
+            int     start = rec.getUnclippedStart() + hmerSize;
+            return FLOW_USE_CLIPPED_LOCATIONS ? Math.max(start, rec.getAlignmentStart()) : start;
         }
-        else if ( FLOW_USE_CLIPPED_LOCATIONS )
+        else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
+            if (endUncertainty != null) {
+                int delta = rec.getAlignmentStart() - rec.getUnclippedStart();
+                endUncertainty.set(Math.max(0, endUncertainty.intValue() - delta));
+            }
             return rec.getAlignmentStart();
+        }
         else
             return rec.getUnclippedStart();
     }
 
-    private int getSelectedRecordEnd(final SAMRecord rec) {
-        if ( FLOW_SKIP_ENDS_HOMOPOLYMERS ) {
+    private int getSelectedRecordEnd(final SAMRecord rec, AtomicInteger endUncertainty) {
+        if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
             byte[]      bases = rec.getReadBases();
-            int         ofs = FLOW_USE_CLIPPED_LOCATIONS ? (rec.getUnclippedEnd() - rec.getAlignmentEnd()) : 0;
+            int         ofs = 0;
             byte        hmerBase = bases[bases.length - 1 - ofs];
+            byte[]      flowOrder = getFlowOrder(rec);
+            int         flowOrderOfs = flowOrder.length - 1;
+
+            // advance flow order to base
+            if ( flowOrder != null )
+                while ( flowOrder[flowOrderOfs] != hmerBase )
+                    if ( --flowOrderOfs < 0 )
+                        flowOrderOfs = flowOrder.length - 1;
+
             int         hmerSize = 1;
-            int         hmersLeft = 3;      // number of hmer left to trim
+            int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
             for ( ; hmerSize < bases.length ; hmerSize++ )
                 if (bases[bases.length - 1 - hmerSize - ofs] != hmerBase) {
                     if ( --hmersLeft <= 0 )
                         break;
-                    else
+                    else {
                         hmerBase = bases[bases.length - 1 - hmerSize - ofs];
+                        if ( flowOrder != null ) {
+                            if (--flowOrderOfs < 0)
+                                flowOrderOfs = flowOrder.length - 1;
+                            while (flowOrder[flowOrderOfs] != hmerBase) {
+                                hmersLeft--;
+                                if (--flowOrderOfs < 0)
+                                    flowOrderOfs = flowOrder.length - 1;
+                            }
+                            if (hmersLeft <= 0)
+                                break;
+                        }
+                    }
                 }
-            return (FLOW_USE_CLIPPED_LOCATIONS ? rec.getAlignmentEnd() : rec.getUnclippedEnd()) - hmerSize;
+            int     end = rec.getUnclippedEnd() - hmerSize;
+            return FLOW_USE_CLIPPED_LOCATIONS ? Math.min(end, rec.getAlignmentEnd()) : end;
         }
-        else if ( FLOW_USE_CLIPPED_LOCATIONS )
+        else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
+            if ( endUncertainty != null ) {
+                int         delta = rec.getUnclippedEnd() - rec.getAlignmentEnd();
+                endUncertainty.set(Math.max(0, endUncertainty.intValue() - delta));
+            }
             return rec.getAlignmentEnd();
+        }
         else
             return rec.getUnclippedEnd();
+    }
+
+    private byte[] getFlowOrder(final SAMRecord rec) {
+        SAMFileHeader       header = rec.getHeader();
+        for ( SAMReadGroupRecord rg : header.getReadGroups() ) {
+            String      flowOrder = rg.getFlowOrder();
+            if ( flowOrder != null )
+                return flowOrder.getBytes();
+        }
+        return null;
     }
 }
