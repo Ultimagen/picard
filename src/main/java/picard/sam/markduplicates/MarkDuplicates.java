@@ -1160,13 +1160,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int     start = rec.getUnclippedStart() + hmerSize;
             return FLOW_USE_CLIPPED_LOCATIONS ? Math.max(start, rec.getAlignmentStart()) : start;
         }
-        else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
-            if (endUncertainty != null) {
-                int delta = rec.getAlignmentStart() - rec.getUnclippedStart();
-                endUncertainty.set(Math.max(0, endUncertainty.intValue() - delta));
-            }
+        else if ( FLOW_USE_CLIPPED_LOCATIONS )
             return rec.getAlignmentStart();
-        }
         else
             return rec.getUnclippedStart();
     }
@@ -1211,13 +1206,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int     end = rec.getUnclippedEnd() - hmerSize;
             return FLOW_USE_CLIPPED_LOCATIONS ? Math.min(end, rec.getAlignmentEnd()) : end;
         }
-        else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
-            if ( endUncertainty != null ) {
-                int         delta = rec.getUnclippedEnd() - rec.getAlignmentEnd();
-                endUncertainty.set(Math.max(0, endUncertainty.intValue() - delta));
-            }
+        else if ( FLOW_USE_CLIPPED_LOCATIONS )
             return rec.getAlignmentEnd();
-        }
         else
             return rec.getUnclippedEnd();
     }
