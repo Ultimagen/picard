@@ -685,11 +685,13 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends.read2Coordinate2Uncertainty = endUncertainty.intValue();
         }
 
-        log.info(String.format("[%s %b] : %d %d : %d %d : %d %d %d",
+        /*
+        log.debug(String.format("[%s %b] : %d %d : %d %d : %d %d %d",
                 rec.getReadName(), rec.getReadNegativeStrandFlag(),
                 rec.getUnclippedStart(), rec.getUnclippedEnd(),
                 rec.getAlignmentStart(), rec.getAlignmentEnd(),
                 ends.read1Coordinate, ends.read1Coordinate2, ends.read1Coordinate2Uncertainty));
+         */
 
         // Fill in the library ID
         ends.libraryId = libraryIdGenerator.getLibraryId(rec);
@@ -1125,15 +1127,17 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             byte        hmerBase = bases[ofs];
             byte[]      flowOrder = getFlowOrder(rec);
             int         flowOrderOfs = 0;
+            int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
 
             // advance flow order to base
             if ( flowOrder != null )
-                while ( flowOrder[flowOrderOfs] != hmerBase )
-                    if ( ++flowOrderOfs >= flowOrder.length )
+                while ( flowOrder[flowOrderOfs] != hmerBase ) {
+                    if (++flowOrderOfs >= flowOrder.length)
                         flowOrderOfs = 0;
+                    hmersLeft--;
+                }
 
             int         hmerSize = 1;
-            int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
             for ( ; hmerSize < bases.length ; hmerSize++ )
                 if (bases[ofs + hmerSize] != hmerBase) {
                     if ( --hmersLeft <= 0 )
@@ -1174,15 +1178,17 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             byte        hmerBase = bases[bases.length - 1 - ofs];
             byte[]      flowOrder = getFlowOrder(rec);
             int         flowOrderOfs = flowOrder.length - 1;
+            int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
 
             // advance flow order to base
             if ( flowOrder != null )
-                while ( flowOrder[flowOrderOfs] != hmerBase )
-                    if ( --flowOrderOfs < 0 )
+                while ( flowOrder[flowOrderOfs] != hmerBase ) {
+                    if (--flowOrderOfs < 0)
                         flowOrderOfs = flowOrder.length - 1;
+                    hmersLeft--;
+                }
 
             int         hmerSize = 1;
-            int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
             for ( ; hmerSize < bases.length ; hmerSize++ )
                 if (bases[bases.length - 1 - hmerSize - ofs] != hmerBase) {
                     if ( --hmersLeft <= 0 )
