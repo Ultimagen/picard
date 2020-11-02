@@ -682,7 +682,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         else if ( FLOW_END_LOCATION_SIGNIFICANT ) {
             AtomicInteger           endUncertainty = new AtomicInteger(ENDS_READ_UNCERTAINTY);
             ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, endUncertainty) : getSelectedRecordStart(rec, endUncertainty);
-            ends.read2Coordinate2Uncertainty = endUncertainty.intValue();
+            ends.read1Coordinate2Uncertainty = endUncertainty.intValue();
         }
 
         /*
