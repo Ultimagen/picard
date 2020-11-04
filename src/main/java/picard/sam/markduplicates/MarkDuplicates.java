@@ -668,7 +668,13 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends = new ReadEndsForMarkDuplicates();
         }
         ends.read1ReferenceIndex = rec.getReferenceIndex();
-        ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, null) : getSelectedRecordStart(rec, null);
+        if ( rec.getReadNegativeStrandFlag() ) {
+            AtomicInteger           endUncertainty = new AtomicInteger(ENDS_READ_UNCERTAINTY);
+            ends.read1Coordinate = getSelectedRecordEnd(rec, endUncertainty);
+            ends.read1CoordinateUncertainty = endUncertainty.intValue();
+        }
+        else
+            ends.read1Coordinate = getSelectedRecordStart(rec, null);
         ends.orientation = rec.getReadNegativeStrandFlag() ? ReadEnds.R : ReadEnds.F;
         ends.read1IndexInFile = index;
         if ( FLOW_QUALITY_SUM_STRATEGY && isFlow(rec) )
@@ -681,9 +687,13 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
         else if ( FLOW_END_LOCATION_SIGNIFICANT ) {
-            AtomicInteger           endUncertainty = new AtomicInteger(ENDS_READ_UNCERTAINTY);
-            ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, endUncertainty) : getSelectedRecordStart(rec, endUncertainty);
-            ends.read1Coordinate2Uncertainty = endUncertainty.intValue();
+            if ( !rec.getReadNegativeStrandFlag() ) {
+                AtomicInteger endUncertainty = new AtomicInteger(ENDS_READ_UNCERTAINTY);
+                ends.read1Coordinate2 = getSelectedRecordEnd(rec, endUncertainty);
+                ends.read1Coordinate2Uncertainty = endUncertainty.intValue();
+            }
+            else
+                ends.read1Coordinate2 = getSelectedRecordStart(rec, null);
         }
 
         /*
@@ -842,14 +852,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
         if (areComparable) {
             areComparable = lhs.read1ReferenceIndex == rhs.read1ReferenceIndex &&
-                    lhs.read1Coordinate == rhs.read1Coordinate &&
+                    Math.abs(lhs.read1Coordinate - rhs.read1Coordinate) <= Math.min(lhs.read1CoordinateUncertainty, rhs.read1CoordinateUncertainty) &&
                     Math.abs(lhs.read1Coordinate2 - rhs.read1Coordinate2) <= Math.min(lhs.read1Coordinate2Uncertainty, rhs.read1Coordinate2Uncertainty) &&
                     lhs.orientation == rhs.orientation;
         }
 
         if (areComparable && compareRead2) {
             areComparable = lhs.read2ReferenceIndex == rhs.read2ReferenceIndex &&
-                    lhs.read2Coordinate == rhs.read2Coordinate &&
+                    Math.abs(lhs.read2Coordinate - rhs.read2Coordinate) <= Math.min(lhs.read2CoordinateUncertainty, rhs.read2CoordinateUncertainty) &&
                     Math.abs(lhs.read2Coordinate2 - rhs.read2Coordinate2) <= Math.min(lhs.read2Coordinate2Uncertainty, rhs.read2Coordinate2Uncertainty);
         }
 
@@ -1029,6 +1039,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.read1Coordinate - rhs.read1Coordinate;
+                if ( Math.abs(compareDifference) <= Math.min(lhs.read1CoordinateUncertainty, rhs.read1CoordinateUncertainty) )
+                    compareDifference = 0;
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.read1Coordinate2 - rhs.read1Coordinate2;
@@ -1173,14 +1185,17 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int         ofs = 0;
             byte        hmerBase = bases[bases.length - 1 - ofs];
             byte[]      flowOrder = getFlowOrder(rec);
-            int         flowOrderOfs = flowOrder.length - 1;
+            int         flowOrderOfs = 0;
             int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
+
+            if ( rec.getReadNegativeStrandFlag() )
+                SequenceUtil.reverseComplement(flowOrder);
 
             // advance flow order to base
             if ( flowOrder != null )
                 while ( flowOrder[flowOrderOfs] != hmerBase ) {
-                    if (--flowOrderOfs < 0)
-                        flowOrderOfs = flowOrder.length - 1;
+                    if (++flowOrderOfs >= flowOrder.length)
+                        flowOrderOfs = 0;
                     hmersLeft--;
                 }
 
@@ -1192,14 +1207,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                     else {
                         hmerBase = bases[bases.length - 1 - hmerSize - ofs];
                         if ( flowOrder != null ) {
-                            if (--flowOrderOfs < 0)
-                                flowOrderOfs = flowOrder.length - 1;
-                            while (flowOrder[flowOrderOfs] != hmerBase) {
+                            if ( ++flowOrderOfs >= flowOrder.length )
+                                flowOrderOfs = 0;
+                            while ( flowOrder[flowOrderOfs] != hmerBase ) {
                                 hmersLeft--;
-                                if (--flowOrderOfs < 0)
-                                    flowOrderOfs = flowOrder.length - 1;
+                                if ( ++flowOrderOfs >= flowOrder.length )
+                                    flowOrderOfs = 0;
                             }
-                            if (hmersLeft <= 0)
+                            if ( hmersLeft <= 0 )
                                 break;
                         }
                     }
@@ -1217,9 +1232,15 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         SAMFileHeader       header = rec.getHeader();
         for ( SAMReadGroupRecord rg : header.getReadGroups() ) {
             String      flowOrder = rg.getFlowOrder();
-            if ( flowOrder != null )
-                return flowOrder.getBytes();
-        }
+            if ( flowOrder != null ) {
+                byte[] bytes = flowOrder.getBytes();
+                if (rec.getReadNegativeStrandFlag())
+                    SequenceUtil.reverseComplement(bytes);
+                return bytes;
+            }
+
+
+            }
         return null;
     }
 }
