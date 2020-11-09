@@ -234,6 +234,10 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     @Argument(doc = "Skip first N flows, when considering duplicates. Default 0.")
     public int FLOW_SKIP_START_HOMOPOLYMERS = 0;
 
+    @Argument(doc = "debug log ultima new dup logic. Default false.")
+    public boolean DEBUG_ULTIMA_DUPS = false;
+
+
     private SortingCollection<ReadEndsForMarkDuplicates> pairSort;
     private SortingCollection<ReadEndsForMarkDuplicates> fragSort;
     private SortingLongCollection duplicateIndexes;
@@ -685,13 +689,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends.read1Coordinate2Uncertainty = endUncertainty.intValue();
         }
 
-        /*
-        log.debug(String.format("[%s %b] : %d %d : %d %d : %d %d %d",
+        if ( DEBUG_ULTIMA_DUPS )
+            log.info(String.format("[%s %b] : %d %d : %d %d : %d %d %d",
                 rec.getReadName(), rec.getReadNegativeStrandFlag(),
                 rec.getUnclippedStart(), rec.getUnclippedEnd(),
                 rec.getAlignmentStart(), rec.getAlignmentEnd(),
                 ends.read1Coordinate, ends.read1Coordinate2, ends.read1Coordinate2Uncertainty));
-         */
 
         // Fill in the library ID
         ends.libraryId = libraryIdGenerator.getLibraryId(rec);
@@ -1172,14 +1175,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int         ofs = 0;
             byte        hmerBase = bases[bases.length - 1 - ofs];
             byte[]      flowOrder = getFlowOrder(rec);
-            int         flowOrderOfs = flowOrder.length - 1;
+            int         flowOrderOfs = 0;
             int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
 
             // advance flow order to base
             if ( flowOrder != null )
                 while ( flowOrder[flowOrderOfs] != hmerBase ) {
-                    if (--flowOrderOfs < 0)
-                        flowOrderOfs = flowOrder.length - 1;
+                    if (++flowOrderOfs >= flowOrder.length)
+                        flowOrderOfs = 0;
                     hmersLeft--;
                 }
 
@@ -1191,12 +1194,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                     else {
                         hmerBase = bases[bases.length - 1 - hmerSize - ofs];
                         if ( flowOrder != null ) {
-                            if (--flowOrderOfs < 0)
-                                flowOrderOfs = flowOrder.length - 1;
+                            if (++flowOrderOfs >= flowOrder.length)
+                                flowOrderOfs = 0;
                             while (flowOrder[flowOrderOfs] != hmerBase) {
                                 hmersLeft--;
-                                if (--flowOrderOfs < 0)
-                                    flowOrderOfs = flowOrder.length - 1;
+                                if (++flowOrderOfs >= flowOrder.length)
+                                    flowOrderOfs = 0;
                             }
                             if (hmersLeft <= 0)
                                 break;
