@@ -34,12 +34,10 @@ abstract public class ReadEnds extends PhysicalLocationShort {
     public byte orientation;
     public int read1ReferenceIndex = -1;
     public int read1Coordinate = -1;
-    public int read1CoordinateUncertainty = 0;
     public int read1Coordinate2 = -1;
     public int read1Coordinate2Uncertainty = 0;
     public int read2ReferenceIndex = -1;
     public int read2Coordinate = -1;
-    public int read2CoordinateUncertainty = 0;
     public int read2Coordinate2 = -1;
     public int read2Coordinate2Uncertainty = 0;
 
