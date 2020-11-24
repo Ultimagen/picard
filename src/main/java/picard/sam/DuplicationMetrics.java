@@ -94,6 +94,36 @@ public class DuplicationMetrics extends MergeableMetricBase {
     @NoMergingIsDerived
     public Long ESTIMATED_LIBRARY_SIZE;
 
+    /*
+     * count of reads with both ends known (i.e. clipped on the end)
+     */
+    @MergeByAdding
+    public long UNPAIRED_READS_KNOWN_FRAGMENT_EXAMINED;
+
+    /*
+     * count of duplicates where only a single end is known
+     */
+    @MergeByAdding
+    public long UNPAIRED_READS_DUPLICATES_SINGLE_END;
+
+    /*
+     * count of duplicates where both ends are known
+     */
+    @MergeByAdding
+    public long UNPAIRED_READS_DUPLICATES_KNOWN_FRAGMENT;
+
+    /**
+     * The fraction of reads with a single end known that are duplicates
+     */
+    @NoMergingIsDerived
+    public Double PERCENT_DUPLICATION_SINGLE_END;
+
+    /**
+     * The fraction of reads with both ends known that are duplicates
+     */
+    @NoMergingIsDerived
+    public Double PERCENT_DUPLICATION_KNOWN_FRAGMENT;
+
     /**
      * Fills in the ESTIMATED_LIBRARY_SIZE based on the paired read data examined where
      * possible and the PERCENT_DUPLICATION.
@@ -107,6 +137,18 @@ public class DuplicationMetrics extends MergeableMetricBase {
             PERCENT_DUPLICATION = (UNPAIRED_READ_DUPLICATES + READ_PAIR_DUPLICATES * 2) / (double) (UNPAIRED_READS_EXAMINED + READ_PAIRS_EXAMINED * 2);
         } else {
             PERCENT_DUPLICATION = (double) 0;
+        }
+
+        if ( UNPAIRED_READS_EXAMINED != 0 ) {
+            PERCENT_DUPLICATION_SINGLE_END = UNPAIRED_READS_DUPLICATES_SINGLE_END / (double)UNPAIRED_READS_EXAMINED;
+        } else {
+            PERCENT_DUPLICATION_SINGLE_END = (double) 0;
+        }
+
+        if ( UNPAIRED_READS_EXAMINED != 0 ) {
+            PERCENT_DUPLICATION_KNOWN_FRAGMENT = UNPAIRED_READS_KNOWN_FRAGMENT_EXAMINED / (double) UNPAIRED_READS_EXAMINED;
+        } else {
+            PERCENT_DUPLICATION_KNOWN_FRAGMENT = (double) 0;
         }
     }
 
