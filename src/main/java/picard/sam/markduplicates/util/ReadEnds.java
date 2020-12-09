@@ -39,7 +39,6 @@ abstract public class ReadEnds extends PhysicalLocationShort {
     public int read2ReferenceIndex = -1;
     public int read2Coordinate = -1;
     public int read2Coordinate2 = -1;
-    public int read2Coordinate2Uncertainty = 0;
 
     // Additional information used to detect optical dupes
     public short readGroup = -1;
