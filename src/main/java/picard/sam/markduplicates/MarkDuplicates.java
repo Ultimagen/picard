@@ -765,18 +765,24 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
 
         ReadEndsForMarkDuplicates firstOfNextChunk = null;
+        int nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
+        int nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
         final List<ReadEndsForMarkDuplicates> nextChunk = new ArrayList<>(200);
 
         // First just do the pairs
         log.info("Traversing read pair information and detecting duplicates.");
         for (final ReadEndsForMarkDuplicates next : this.pairSort) {
-            if (firstOfNextChunk != null && areComparableForDuplicates(firstOfNextChunk, next, true, useBarcodes)) {
+            if (firstOfNextChunk != null && areComparableForDuplicates(firstOfNextChunk, next, true, useBarcodes,
+                    nextChunkRead1Coordinate2Min, nextChunkRead1Coordinate2Max)) {
                 nextChunk.add(next);
+                nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
+                nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
             } else {
                 handleChunk(nextChunk);
                 nextChunk.clear();
                 nextChunk.add(next);
                 firstOfNextChunk = next;
+                nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
             }
         }
         handleChunk(nextChunk);
@@ -790,9 +796,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         boolean containsFrags = false;
 
         firstOfNextChunk = null;
+        nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
+        nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
 
         for (final ReadEndsForMarkDuplicates next : this.fragSort) {
-            if (firstOfNextChunk != null && areComparableForDuplicates(firstOfNextChunk, next, false, useBarcodes)) {
+            if (firstOfNextChunk != null && areComparableForDuplicates(firstOfNextChunk, next, false, useBarcodes,
+                    nextChunkRead1Coordinate2Min, nextChunkRead1Coordinate2Max)) {
                 nextChunk.add(next);
                 containsPairs = containsPairs || next.isPaired();
                 containsFrags = containsFrags || !next.isPaired();
@@ -803,6 +812,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 nextChunk.clear();
                 nextChunk.add(next);
                 firstOfNextChunk = next;
+                nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
                 containsPairs = next.isPaired();
                 containsFrags = !next.isPaired();
             }
@@ -832,7 +842,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
     }
 
-    private boolean areComparableForDuplicates(final ReadEndsForMarkDuplicates lhs, final ReadEndsForMarkDuplicates rhs, final boolean compareRead2, final boolean useBarcodes) {
+    private boolean areComparableForDuplicates(final ReadEndsForMarkDuplicates lhs, final ReadEndsForMarkDuplicates rhs, final boolean compareRead2, final boolean useBarcodes,
+                                               final int lhsRead1Coordinate2Min, final int lhsRead1Coordinate2Max) {
         boolean areComparable = lhs.libraryId == rhs.libraryId;
 
         if (useBarcodes && areComparable) { // areComparable is useful here to avoid the casts below
@@ -846,17 +857,36 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if (areComparable) {
             areComparable = lhs.read1ReferenceIndex == rhs.read1ReferenceIndex &&
                     lhs.read1Coordinate == rhs.read1Coordinate &&
-                    Math.abs(lhs.read1Coordinate2 - rhs.read1Coordinate2) <= Math.min(lhs.read1Coordinate2Uncertainty, rhs.read1Coordinate2Uncertainty) &&
+                    withinRangeWithUncertainty(lhs.read1Coordinate2, rhs.read1Coordinate2,
+                                                Math.min(lhs.read1Coordinate2Uncertainty, rhs.read1Coordinate2Uncertainty),
+                                                lhsRead1Coordinate2Min, lhsRead1Coordinate2Max) &&
                     lhs.orientation == rhs.orientation;
         }
 
         if (areComparable && compareRead2) {
             areComparable = lhs.read2ReferenceIndex == rhs.read2ReferenceIndex &&
                     lhs.read2Coordinate == rhs.read2Coordinate &&
-                    Math.abs(lhs.read2Coordinate2 - rhs.read2Coordinate2) <= Math.min(lhs.read2Coordinate2Uncertainty, rhs.read2Coordinate2Uncertainty);
+                    lhs.read2Coordinate2 == rhs.read2Coordinate2;
         }
 
         return areComparable;
+    }
+
+    private boolean withinRangeWithUncertainty(int lhsCoor, int rhsCoor, int uncertainty, int lhsCoorMin, int lhsCoorMax) {
+
+        // if no uncetainly, easy
+        if ( uncertainty == 0 )
+            return lhsCoor == rhsCoor;
+
+        // check that rhsCoor is with range or close enough to it
+        if ( rhsCoor >= lhsCoorMin && rhsCoor <= lhsCoorMax )
+            return true;
+        else if ( rhsCoor < lhsCoorMin && (lhsCoorMin - rhsCoor) <= uncertainty )
+            return true;
+        else if ( rhsCoor > lhsCoorMax && (rhsCoor - lhsCoorMax) <= uncertainty )
+            return true;
+        else
+            return false;
     }
 
     private void addIndexAsDuplicate(final long bamIndex) {
@@ -1035,8 +1065,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.read1Coordinate2 - rhs.read1Coordinate2;
-                if ( Math.abs(compareDifference) <= Math.min(lhs.read1Coordinate2Uncertainty, rhs.read1Coordinate2Uncertainty) )
-                    compareDifference = 0;
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.orientation - rhs.orientation;
@@ -1049,8 +1077,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.read2Coordinate2 - rhs.read2Coordinate2;
-                if ( Math.abs(compareDifference) <= Math.min(lhs.read2Coordinate2Uncertainty, rhs.read2Coordinate2Uncertainty) )
-                    compareDifference = 0;
             }
 
             if (compareDifference == 0) {
