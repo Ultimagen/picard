@@ -51,12 +51,13 @@ public class ReadEndsForMarkDuplicatesCodec implements SortingCollection.Codec<R
 
     public void encode(final ReadEndsForMarkDuplicates read) {
         try {
-            this.out.writeShort(read.score);
+            this.out.writeDouble(read.score);
             this.out.writeShort(read.libraryId);
             this.out.writeByte(read.orientation);
             this.out.writeInt(read.read1ReferenceIndex);
             this.out.writeInt(read.read1Coordinate);
             this.out.writeInt(read.read1Coordinate2);
+            this.out.writeInt(read.read1Coordinate2Uncertainty);
             this.out.writeLong(read.read1IndexInFile);
             this.out.writeInt(read.read2ReferenceIndex);
 
@@ -82,7 +83,7 @@ public class ReadEndsForMarkDuplicatesCodec implements SortingCollection.Codec<R
         try {
             // If the first read results in an EOF we've exhausted the stream
             try {
-                read.score = this.in.readShort();
+                read.score = this.in.readDouble();
             } catch (final EOFException eof) {
                 return null;
             }
@@ -92,6 +93,7 @@ public class ReadEndsForMarkDuplicatesCodec implements SortingCollection.Codec<R
             read.read1ReferenceIndex = this.in.readInt();
             read.read1Coordinate = this.in.readInt();
             read.read1Coordinate2 = this.in.readInt();
+            read.read1Coordinate2Uncertainty = this.in.readInt();
             read.read1IndexInFile = this.in.readLong();
             read.read2ReferenceIndex = this.in.readInt();
 
