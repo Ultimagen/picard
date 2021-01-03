@@ -46,7 +46,7 @@ public class ReadEndsForMarkDuplicates extends ReadEnds implements Cloneable {
         return SIZE_OF;
     }
 
-    public short score = 0;
+    public double score = 0;
     public long read1IndexInFile = -1;
     public long read2IndexInFile = -1;
     public int duplicateSetSize = -1;
