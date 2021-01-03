@@ -110,6 +110,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "for detailed explanations of the output metrics." +
             "<hr />";
 
+    static public final int     END_INSIGNIFICANT = 0;
+
     /**
      * Enum used to control how duplicates are flagged in the DT optional tag on each read.
      */
@@ -687,6 +689,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             AtomicInteger           endUncertainty = new AtomicInteger(ENDS_READ_UNCERTAINTY);
             ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, endUncertainty) : getSelectedRecordStart(rec, endUncertainty);
             ends.read1Coordinate2Uncertainty = endUncertainty.intValue();
+            if ( ends.read1Coordinate2 == END_INSIGNIFICANT )
+                ends.score -= 0.001;
         }
 
         if ( DEBUG_ULTIMA_DUPS )
@@ -774,14 +778,21 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             if (firstOfNextChunk != null && areComparableForDuplicates(firstOfNextChunk, next, true, useBarcodes,
                     nextChunkRead1Coordinate2Min, nextChunkRead1Coordinate2Max)) {
                 nextChunk.add(next);
-                nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
-                nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT ) {
+                    nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
+                    nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
+                }
             } else {
                 handleChunk(nextChunk);
                 nextChunk.clear();
                 nextChunk.add(next);
                 firstOfNextChunk = next;
-                nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT )
+                    nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
+                else {
+                    nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
+                    nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
+                }
             }
         }
         handleChunk(nextChunk);
@@ -873,6 +884,10 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
     private boolean withinRangeWithUncertainty(int lhsCoor, int rhsCoor, int uncertainty, int lhsCoorMin, int lhsCoorMax) {
 
+        // if any of the coordinates is insignificant, coornates are within by definition
+        if ( lhsCoor == END_INSIGNIFICANT || rhsCoor == END_INSIGNIFICANT )
+            return true;
+
         // if no uncetainly, easy
         if ( uncertainty == 0 )
             return lhsCoor == rhsCoor;
@@ -908,7 +923,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
      * the 'DI' tag.
      */
     private void addRepresentativeReadIndex(final List<ReadEndsForMarkDuplicates> list) {
-        short maxScore = 0;
+        double maxScore = 0;
         ReadEndsForMarkDuplicates best = null;
 
         /** All read ends should have orientation FF, FR, RF, or RR **/
@@ -931,7 +946,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
      * not be marked as duplicates.  This assumes that the list contains objects representing pairs.
      */
     private void markDuplicatePairs(final List<ReadEndsForMarkDuplicates> list) {
-        short maxScore = 0;
+        double maxScore = 0;
         ReadEndsForMarkDuplicates best = null;
 
         /** All read ends should have orientation FF, FR, RF, or RR **/
@@ -1013,7 +1028,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 }
             }
         } else {
-            short maxScore = 0;
+            double maxScore = 0;
             ReadEndsForMarkDuplicates best = null;
             for (final ReadEndsForMarkDuplicates end : list) {
                 if (end.score > maxScore || best == null) {
@@ -1109,11 +1124,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         return rec.hasAttribute("tp");
     }
 
-    private short computeFlowDuplicateScore(SAMRecord rec) {
+    private double computeFlowDuplicateScore(SAMRecord rec) {
 
-        Short storedScore = (Short)rec.getTransientAttribute("DuplicateScore");
+        Double storedScore = (Double)rec.getTransientAttribute("DuplicateScore");
         if ( storedScore == null ) {
-            short score = 0;
+            double score = 0;
 
             score += (short) Math.min(getFlowSumOfBaseQualities(rec), Short.MAX_VALUE / 2);
 
@@ -1189,7 +1204,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int     start = rec.getUnclippedStart() + hmerSize;
             return FLOW_USE_CLIPPED_LOCATIONS ? Math.max(start, rec.getAlignmentStart()) : start;
         }
-        else if ( FLOW_USE_CLIPPED_LOCATIONS )
+        else if ( tmTagContains(rec, 'Q', 'Z') )
+            return END_INSIGNIFICANT;
+        else if ( FLOW_USE_CLIPPED_LOCATIONS && !tmTagContains(rec, 'A', '\0') )
             return rec.getAlignmentStart();
         else
             return rec.getUnclippedStart();
@@ -1235,10 +1252,20 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int     end = rec.getUnclippedEnd() - hmerSize;
             return FLOW_USE_CLIPPED_LOCATIONS ? Math.min(end, rec.getAlignmentEnd()) : end;
         }
-        else if ( FLOW_USE_CLIPPED_LOCATIONS )
+        else if ( tmTagContains(rec, 'Q', 'Z') )
+            return END_INSIGNIFICANT;
+        else if ( FLOW_USE_CLIPPED_LOCATIONS && !tmTagContains(rec, 'A', '\0') )
             return rec.getAlignmentEnd();
         else
             return rec.getUnclippedEnd();
+    }
+
+    public static boolean tmTagContains(final SAMRecord rec, final char ch1, final char ch2) {
+        final String        tm = rec.getStringAttribute("tm");
+        if ( tm == null )
+            return false;
+        else
+            return tm.indexOf(ch1) >= 0 || (ch2 != '\0' && tm.indexOf(ch2) >= 0);
     }
 
     private byte[] getFlowOrder(final SAMRecord rec) {
