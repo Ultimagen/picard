@@ -691,7 +691,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, endUncertainty) : getSelectedRecordStart(rec, endUncertainty);
             ends.read1Coordinate2Uncertainty = endUncertainty.intValue();
             if ( ends.read1Coordinate2 == END_INSIGNIFICANT )
-                ends.score -= 0.001;
+                ends.score = -1;
         }
 
         if ( DEBUG_ULTIMA_DUPS )
