@@ -694,11 +694,15 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
 
         if ( DEBUG_ULTIMA_DUPS )
-            log.info(String.format("[%s %b] : %d %d : %d %d : %d %d %d",
-                rec.getReadName(), rec.getReadNegativeStrandFlag(),
+            log.info(String.format("%d [%s %s] : %d-%d : %d-%d : tm:%s => %d-%d(%d) %f",
+                ends.read1IndexInFile,
+                rec.getReadName(),
+                    rec.getReadNegativeStrandFlag() ? "R" : "N",
                 rec.getUnclippedStart(), rec.getUnclippedEnd(),
                 rec.getAlignmentStart(), rec.getAlignmentEnd(),
-                ends.read1Coordinate, ends.read1Coordinate2, ends.read1Coordinate2Uncertainty));
+                rec.getAttribute("tm"),
+                ends.read1Coordinate, ends.read1Coordinate2, ends.read1Coordinate2Uncertainty,
+                    ends.score));
 
         // Fill in the library ID
         ends.libraryId = libraryIdGenerator.getLibraryId(rec);
@@ -815,6 +819,13 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 nextChunk.add(next);
                 containsPairs = containsPairs || next.isPaired();
                 containsFrags = containsFrags || !next.isPaired();
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT ) {
+                    nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
+                    nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
+
+                    if ( firstOfNextChunk.read1Coordinate2 == END_INSIGNIFICANT )
+                        firstOfNextChunk = next;
+                }
             } else {
                 if (nextChunk.size() > 1 && containsFrags) {
                     markDuplicateFragments(nextChunk, containsPairs);
@@ -822,7 +833,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 nextChunk.clear();
                 nextChunk.add(next);
                 firstOfNextChunk = next;
-                nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT )
+                    nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
+                else {
+                    nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
+                    nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
+                }
                 containsPairs = next.isPaired();
                 containsFrags = !next.isPaired();
             }
@@ -1042,6 +1058,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                     addIndexAsDuplicate(end.read1IndexInFile);
                 }
             }
+
+            if ( DEBUG_ULTIMA_DUPS ) {
+                log.info("markDuplicateFragments: best maked with *");
+                for (final ReadEndsForMarkDuplicates end : list)
+                    log.info(end.toString() + ((end == best) ? "*" : ""));
+            }
         }
     }
 
@@ -1204,9 +1226,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int     start = rec.getUnclippedStart() + hmerSize;
             return FLOW_USE_CLIPPED_LOCATIONS ? Math.max(start, rec.getAlignmentStart()) : start;
         }
-        else if ( tmTagContains(rec, 'Q', 'Z') )
+        else if ( tmTagContains(rec, 'A', '\0') )
+            return rec.getUnclippedStart();
+        else if ( endUncertainty != null && tmTagContains(rec, 'Q', 'Z') )
             return END_INSIGNIFICANT;
-        else if ( FLOW_USE_CLIPPED_LOCATIONS && !tmTagContains(rec, 'A', '\0') )
+        else if ( FLOW_USE_CLIPPED_LOCATIONS )
             return rec.getAlignmentStart();
         else
             return rec.getUnclippedStart();
@@ -1252,9 +1276,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int     end = rec.getUnclippedEnd() - hmerSize;
             return FLOW_USE_CLIPPED_LOCATIONS ? Math.min(end, rec.getAlignmentEnd()) : end;
         }
-        else if ( tmTagContains(rec, 'Q', 'Z') )
+        else if ( tmTagContains(rec, 'A', '\0') )
+            return rec.getUnclippedEnd();
+        else if ( endUncertainty != null && tmTagContains(rec, 'Q', 'Z') )
             return END_INSIGNIFICANT;
-        else if ( FLOW_USE_CLIPPED_LOCATIONS && !tmTagContains(rec, 'A', '\0') )
+        else if ( FLOW_USE_CLIPPED_LOCATIONS )
             return rec.getAlignmentEnd();
         else
             return rec.getUnclippedEnd();
