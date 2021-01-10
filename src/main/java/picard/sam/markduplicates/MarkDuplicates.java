@@ -638,7 +638,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                         }
 
                         if ( FLOW_QUALITY_SUM_STRATEGY && isFlow(rec) )
-                            pairedEnds.score += computeFlowDuplicateScore(rec);
+                            pairedEnds.score += computeFlowDuplicateScore(rec, pairedEnds.read1Coordinate, pairedEnds.read1Coordinate2);
                         else
                             pairedEnds.score += DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
                         this.pairSort.add(pairedEnds);
@@ -676,10 +676,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         ends.read1Coordinate = rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, null) : getSelectedRecordStart(rec, null);
         ends.orientation = rec.getReadNegativeStrandFlag() ? ReadEnds.R : ReadEnds.F;
         ends.read1IndexInFile = index;
-        if ( FLOW_QUALITY_SUM_STRATEGY && isFlow(rec) )
-            ends.score = computeFlowDuplicateScore(rec);
-        else
-            ends.score = DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
 
         // Doing this lets the ends object know that it's part of a pair
         if (rec.getReadPairedFlag() && !rec.getMateUnmappedFlag()) {
@@ -691,6 +687,13 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends.read1Coordinate2Uncertainty = endUncertainty.intValue();
             if ( ends.read1Coordinate2 == END_INSIGNIFICANT )
                 ends.score = -1;
+        }
+
+        if ( ends.score == 0 ) {
+            if (FLOW_QUALITY_SUM_STRATEGY && isFlow(rec))
+                ends.score = computeFlowDuplicateScore(rec, ends.read1Coordinate, ends.read1Coordinate2);
+            else
+                ends.score = DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
         }
 
         if ( DEBUG_ULTIMA_DUPS )
@@ -1146,13 +1149,13 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         return rec.hasAttribute("tp");
     }
 
-    private double computeFlowDuplicateScore(SAMRecord rec) {
+    private double computeFlowDuplicateScore(SAMRecord rec, int start, int end) {
 
         Double storedScore = (Double)rec.getTransientAttribute("DuplicateScore");
         if ( storedScore == null ) {
             double score = 0;
 
-            score += (short) Math.min(getFlowSumOfBaseQualities(rec), Short.MAX_VALUE / 2);
+            score += (short) Math.min(getFlowSumOfBaseQualities(rec, start, end), Short.MAX_VALUE / 2);
 
             score += rec.getReadFailsVendorQualityCheckFlag() ? (short) (Short.MIN_VALUE / 2) : 0;
             storedScore = score;
@@ -1162,24 +1165,27 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         return storedScore;
     }
 
-    private int getFlowSumOfBaseQualities(SAMRecord rec) {
+    private int getFlowSumOfBaseQualities(SAMRecord rec, int start, int end) {
         int score = 0;
 
         // access qualities and bases
         byte[]      quals = rec.getBaseQualities();
         byte[]      bases = rec.getReadBases();
 
+        // establish range of bases/quals to work on
+        int         startingOffset = Math.max(0, start - rec.getUnclippedStart());
+        int         endOffset = Math.max(0, rec.getUnclippedEnd() - end);
+
         // loop on bases, extract qual related to homopolymer from start of homopolymer
-        int         i = 0;
         byte        lastBase = 0;
         byte        effectiveQual = 0;
-        for (final byte base : bases ) {
+        for ( int i = startingOffset ; i < bases.length - endOffset ; i++ ) {
+            byte        base = bases[i];
             if ( base != lastBase )
                 effectiveQual = quals[i];
             if ( effectiveQual >= 15 )
                 score += effectiveQual;
             lastBase = base;
-            i++;
         }
 
         return score;
