@@ -15,3 +15,7 @@ report
 jacoco.data
 .gradle
 build
+*.log
+*.swp
+testdata/picard/sam/CollectGcBiasMetrics/CollectGcBias*bam
+

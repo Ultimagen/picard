@@ -24,12 +24,7 @@
 
 package picard.sam.markduplicates;
 
-import htsjdk.samtools.SAMFileHeader;
-import htsjdk.samtools.SAMProgramRecord;
-import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.SAMTag;
-import htsjdk.samtools.SamReader;
-import htsjdk.samtools.SamReaderFactory;
+import htsjdk.samtools.*;
 import htsjdk.samtools.util.CloserUtil;
 import htsjdk.samtools.util.CollectionUtil;
 import htsjdk.samtools.util.IOUtil;
@@ -374,6 +369,140 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
 
         tester.addArg("BARCODE_TAG=" + barcodeTag);
         tester.addArg("DUPLEX_UMI=" + duplexUmi);
+        tester.runTest();
+    }
+
+    @Test
+    public void testFLOW_END_LOCATION_SIGNIFICANT() {
+        AbstractMarkDuplicatesCommandLineProgramTester tester;
+
+        // End location is not significant
+        tester = getTester();
+        tester.getSamRecordSetBuilder().setReadLength(76);
+        tester.addMappedFragment(0, 12, false, 50);
+        tester.getSamRecordSetBuilder().setReadLength(74);
+        tester.addMappedFragment(0, 12, true, 50);
+        tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=false");
+        tester.runTest();
+
+        // End location is significant
+        tester = getTester();
+        tester.getSamRecordSetBuilder().setReadLength(76);
+        tester.addMappedFragment(0, 12, false, 50);
+        tester.getSamRecordSetBuilder().setReadLength(74);
+        tester.addMappedFragment(0, 12, false, 50);
+        tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
+        tester.runTest();
+    }
+
+    @Test
+    public void testFLOW_USE_CLIPPED_LOCATIONS() {
+        AbstractMarkDuplicatesCommandLineProgramTester tester;
+
+        // Do not use clipped locations (meaning, use unclipped)
+        tester = getTester();
+        tester.getSamRecordSetBuilder().setReadLength(76);
+        tester.addMappedFragment(0, 12, false, "1S76M", 50);
+        tester.getSamRecordSetBuilder().setReadLength(74);
+        tester.addMappedFragment(0, 12, false, "74M", 50);
+        tester.addArg("FLOW_USE_CLIPPED_LOCATIONS=false");
+        tester.runTest();
+
+        // Use clipped locations (meaning, use clipped)
+        tester = getTester();
+        tester.getSamRecordSetBuilder().setReadLength(76);
+        tester.addMappedFragment(0, 12, false, "1S76M", 50);
+        tester.getSamRecordSetBuilder().setReadLength(74);
+        tester.addMappedFragment(0, 12, true, "74M", 50);
+        tester.addArg("FLOW_USE_CLIPPED_LOCATIONS=true");
+        tester.runTest();
+
+        // Use clipped locations (meaning, use clipped)
+        tester = getTester();
+        tester.getSamRecordSetBuilder().setReadLength(76);
+        tester.addMappedFragment(0, 12, true, "1S76M1S", 50);
+        tester.getSamRecordSetBuilder().setReadLength(78);
+        tester.addMappedFragment(0, 11, false, "78M", 50);
+        tester.addArg("FLOW_USE_CLIPPED_LOCATIONS=false");
+        tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
+        tester.runTest();
+
+        // Use clipped locations (meaning, use clipped)
+        tester = getTester();
+        tester.getSamRecordSetBuilder().setReadLength(76);
+        tester.addMappedFragment(0, 12, false, "1S76M1S", 50);
+        tester.getSamRecordSetBuilder().setReadLength(78);
+        tester.addMappedFragment(0, 11, false, "78M", 50);
+        tester.addArg("FLOW_USE_CLIPPED_LOCATIONS=true");
+        tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
+        tester.runTest();
+    }
+
+    @Test
+    public void testFLOW_SKIP_START_HOMOPOLYMERS() {
+        AbstractMarkDuplicatesCommandLineProgramTester tester;
+        SAMRecord[]     records;
+
+        // Do not use clipped locations (meaning, use unclipped)
+        tester = getTester();
+        tester.getSamRecordSetBuilder().setReadLength(76);
+        tester.addMappedFragment(0, 12, false, "76M", 50);
+        tester.addMappedFragment(0, 12, true, "76M", 50);
+        records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
+        System.arraycopy("ACGTT".getBytes(), 0, records[0].getReadBases(), 0, 5);
+        System.arraycopy("TTGCA".getBytes(), 0, records[0].getReadBases(), records[0].getReadBases().length - 5, 4);
+        System.arraycopy("ACGGT".getBytes(), 0, records[1].getReadBases(), 0, 5);
+        System.arraycopy("TGGCA".getBytes(), 0, records[1].getReadBases(), records[1].getReadBases().length - 5, 4);
+        tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
+        tester.addArg("FLOW_SKIP_START_HOMOPOLYMERS=0");
+        tester.runTest();
+
+        // Do not use clipped locations (meaning, use unclipped)
+        tester = getTester();
+        tester.getSamRecordSetBuilder().setReadLength(76);
+        tester.addMappedFragment(0, 12, false, "76M", 50);
+        tester.addMappedFragment(0, 12, false, "76M", 50);
+        records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
+        System.arraycopy("ACGTT".getBytes(), 0, records[0].getReadBases(), 0, 5);
+        System.arraycopy("TTGCA".getBytes(), 0, records[0].getReadBases(), records[0].getReadBases().length - 5, 4);
+        System.arraycopy("ACGGT".getBytes(), 0, records[1].getReadBases(), 0, 5);
+        System.arraycopy("TGGCA".getBytes(), 0, records[1].getReadBases(), records[1].getReadBases().length - 5, 4);
+        tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
+        tester.addArg("FLOW_SKIP_START_HOMOPOLYMERS=3");
+        tester.runTest();
+    }
+
+    @Test
+    public void testFLOW_QUALITY_SUM_STRATEGY() {
+        AbstractMarkDuplicatesCommandLineProgramTester tester;
+        SAMRecord[]     records;
+
+        //  normal sum
+        tester = new MarkDuplicatesTester(DuplicateScoringStrategy.ScoringStrategy.SUM_OF_BASE_QUALITIES);
+        tester.getSamRecordSetBuilder().setReadLength(76);
+        tester.addMappedFragment(0, 12, true, "76M", 50);
+        tester.addMappedFragment(0, 12, false, "76M", 50);
+        records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
+        records[0].setAttribute("tp", new int[76]);
+        records[1].setAttribute("tp", new int[76]);
+        records[0].getBaseQualities()[1] = 25; // dip inside AAA
+        System.arraycopy("AAAC".getBytes(), 0, records[0].getReadBases(), 0, 4);
+        System.arraycopy("AACC".getBytes(), 0, records[1].getReadBases(), 0, 4);
+        tester.addArg("FLOW_QUALITY_SUM_STRATEGY=false");
+        tester.runTest();
+
+        // flow (homopolymer based) sum
+        tester = new MarkDuplicatesTester(DuplicateScoringStrategy.ScoringStrategy.SUM_OF_BASE_QUALITIES);
+        tester.getSamRecordSetBuilder().setReadLength(76);
+        tester.addMappedFragment(0, 12, false, "76M", 50);
+        tester.addMappedFragment(0, 12, true, "76M", 50);
+        records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
+        records[0].setAttribute("tp", new int[76]);
+        records[1].setAttribute("tp", new int[76]);
+        records[0].getBaseQualities()[1] = 25; // dip inside AAA
+        System.arraycopy("AAAC".getBytes(), 0, records[0].getReadBases(), 0, 4);
+        System.arraycopy("AACC".getBytes(), 0, records[1].getReadBases(), 0, 4);
+        tester.addArg("FLOW_QUALITY_SUM_STRATEGY=true");
         tester.runTest();
     }
 }
