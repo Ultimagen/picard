@@ -239,6 +239,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     @Argument(doc = "debug log ultima new dup logic. Default false.")
     public boolean DEBUG_ULTIMA_DUPS = false;
 
+    @Argument(doc = "debug log ultima new dup logic: read name. Default null.", optional = true)
+    public List<String> DEBUG_ULTIMA_READ_NAME = null;
 
     private SortingCollection<ReadEndsForMarkDuplicates> pairSort;
     private SortingCollection<ReadEndsForMarkDuplicates> fragSort;
@@ -696,7 +698,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 ends.score = DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
         }
 
-        if ( DEBUG_ULTIMA_DUPS )
+        if ( DEBUG_ULTIMA_DUPS || isDebugUltimaRead(rec) )
             log.info(String.format("%d [%s %s] : %d-%d : %d-%d : tm:%s => %d-%d(%d) %f",
                 ends.read1IndexInFile,
                 rec.getReadName(),
@@ -741,6 +743,10 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
 
         return ends;
+    }
+
+    private boolean isDebugUltimaRead(SAMRecord rec) {
+        return DEBUG_ULTIMA_READ_NAME != null && DEBUG_ULTIMA_READ_NAME.contains(rec.getReadName());
     }
 
     /**
@@ -1167,6 +1173,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
     private int getFlowSumOfBaseQualities(SAMRecord rec, int start, int end) {
         int score = 0;
+        boolean     debug = isDebugUltimaRead(rec);
+
+        // reversed?
+        if ( rec.getReadNegativeStrandFlag() ) {
+            int     tmp = start;
+            start = end;
+            end = tmp;
+        }
 
         // access qualities and bases
         byte[]      quals = rec.getBaseQualities();
@@ -1183,8 +1197,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             byte        base = bases[i];
             if ( base != lastBase )
                 effectiveQual = quals[i];
-            if ( effectiveQual >= 15 )
+            if ( effectiveQual >= 15 ) {
                 score += effectiveQual;
+            }
             lastBase = base;
         }
 
