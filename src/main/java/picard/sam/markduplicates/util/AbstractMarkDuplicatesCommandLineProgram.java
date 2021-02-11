@@ -42,6 +42,7 @@ import picard.PicardException;
 import picard.cmdline.CommandLineProgram;
 import picard.cmdline.StandardOptionDefinitions;
 import picard.sam.DuplicationMetrics;
+import picard.sam.markduplicates.MarkDuplicates;
 import picard.sam.util.PGTagArgumentCollection;
 
 import java.io.File;
@@ -249,7 +250,9 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
     private static boolean isKnownFragment(final SAMRecord rec) {
         if ( rec.getReadUnmappedFlag() )
             return false;
-        if ( !rec.getReadNegativeStrandFlag() )
+        else if ( MarkDuplicates.tmTagContains(rec,'A', '\0') )
+            return true;
+        else if ( !rec.getReadNegativeStrandFlag() )
             return rec.getEnd() != rec.getUnclippedEnd();
         else
             return rec.getStart() != rec.getUnclippedStart();
