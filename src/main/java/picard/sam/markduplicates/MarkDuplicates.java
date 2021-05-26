@@ -235,6 +235,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     @Argument(doc = "Skip first N flows, when considering duplicates. Default 0.")
     public int FLOW_SKIP_START_HOMOPOLYMERS = 0;
 
+    @Argument(doc = "Treat tm:Q as tm:A. Default false.")
+    public boolean FLOW_Q_IS_KNOWN_END = false;
+
     @Argument(doc = "debug log ultima new dup logic. Default false.")
     public boolean DEBUG_ULTIMA_DUPS = false;
 
@@ -1248,7 +1251,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int     start = rec.getUnclippedStart() + hmerSize;
             return FLOW_USE_CLIPPED_LOCATIONS ? Math.max(start, rec.getAlignmentStart()) : start;
         }
-        else if ( tmTagContains(rec, 'A', '\0') )
+        else if ( tmTagContains(rec, 'A', FLOW_Q_IS_KNOWN_END ? 'Q' : '\0') )
             return rec.getUnclippedStart();
         else if ( endUncertainty != null && tmTagContains(rec, 'Q', 'Z') )
             return END_INSIGNIFICANT;
@@ -1298,7 +1301,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             int     end = rec.getUnclippedEnd() - hmerSize;
             return FLOW_USE_CLIPPED_LOCATIONS ? Math.min(end, rec.getAlignmentEnd()) : end;
         }
-        else if ( tmTagContains(rec, 'A', '\0') )
+        else if ( tmTagContains(rec, 'A', FLOW_Q_IS_KNOWN_END ? 'Q' : '\0') )
             return rec.getUnclippedEnd();
         else if ( endUncertainty != null && tmTagContains(rec, 'Q', 'Z') )
             return END_INSIGNIFICANT;
