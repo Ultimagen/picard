@@ -126,6 +126,22 @@ public class AlignmentSummaryMetrics extends MultilevelMetrics {
     public double MEAN_READ_LENGTH;
 
     /**
+     * The median read length of the set of reads examined.  When looking at the data for a single lane with
+     * equal length reads this number is just the read length.  When looking at data for merged lanes with
+     * differing read lengths this is the mean read length of all reads.
+     */
+    public double MEDIAN_READ_LENGTH;
+
+
+    /**
+     * The median aligned read length of the set of reads examined.  When looking at the data for a single lane with
+     * equal length reads this number is just the read length.  When looking at data for merged lanes with
+     * differing read lengths this is the mean read length of all reads.
+     */
+    public double MEAN_ALIGNED_READ_LENGTH;
+
+
+    /**
      * The number of aligned reads whose mate pair was also aligned to the reference.
      */
     public long READS_ALIGNED_IN_PAIRS;
@@ -181,4 +197,6 @@ public class AlignmentSummaryMetrics extends MultilevelMetrics {
      * PF_ALIGNED_BASES (even though these are not aligned!)
      */
     public double PCT_HARDCLIP;
+
+
 }

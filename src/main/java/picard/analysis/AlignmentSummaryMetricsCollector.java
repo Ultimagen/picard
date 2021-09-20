@@ -38,6 +38,7 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.CoordMath;
 import htsjdk.samtools.util.Histogram;
 import htsjdk.samtools.util.SequenceUtil;
+import htsjdk.samtools.util.StringUtil;
 import picard.metrics.PerUnitMetricCollector;
 import picard.metrics.SAMRecordAndReference;
 import picard.metrics.SAMRecordAndReferenceMultiLevelCollector;
@@ -208,7 +209,7 @@ public class AlignmentSummaryMetricsCollector extends SAMRecordAndReferenceMulti
                 metrics.PCT_PF_READS = (double) metrics.PF_READS / (double) metrics.TOTAL_READS;
                 metrics.PCT_ADAPTER = adapterReads / (double) metrics.PF_READS;
                 metrics.MEAN_READ_LENGTH = readLengthHistogram.getMean();
-
+                metrics.MEDIAN_READ_LENGTH = readLengthHistogram.getMedian();
                 //Calculate BAD_CYCLES
                 metrics.BAD_CYCLES = 0;
                 for (final Histogram.Bin<Integer> cycleBin : badCycleHistogram.values()) {
@@ -221,6 +222,7 @@ public class AlignmentSummaryMetricsCollector extends SAMRecordAndReferenceMulti
                 if (doRefMetrics) {
                     metrics.PCT_PF_READS_ALIGNED = MathUtil.divide((double) metrics.PF_READS_ALIGNED, (double) metrics.PF_READS);
                     metrics.PCT_READS_ALIGNED_IN_PAIRS = MathUtil.divide((double) metrics.READS_ALIGNED_IN_PAIRS, (double) metrics.PF_READS_ALIGNED);
+                    metrics.MEAN_ALIGNED_READ_LENGTH = alignedReadLengthHistogram.getMean();
                     metrics.PCT_PF_READS_IMPROPER_PAIRS = MathUtil.divide((double) metrics.PF_READS_IMPROPER_PAIRS, (double) metrics.PF_READS_ALIGNED);
                     metrics.STRAND_BALANCE = MathUtil.divide(numPositiveStrand, (double) metrics.PF_READS_ALIGNED);
                     metrics.PCT_CHIMERAS = MathUtil.divide(chimeras, (double) chimerasDenominator);
@@ -423,6 +425,7 @@ public class AlignmentSummaryMetricsCollector extends SAMRecordAndReferenceMulti
                     record.getMappingQuality() >= MAPPING_QUALITY_THRESHOLD;
         }
 
+
         public AlignmentSummaryMetrics getMetrics() {
             return metrics;
         }
@@ -434,6 +437,7 @@ public class AlignmentSummaryMetricsCollector extends SAMRecordAndReferenceMulti
         public Histogram<Integer> getAlignedReadHistogram() {
             return alignedReadLengthHistogram;
         }
+
     }
 }
 

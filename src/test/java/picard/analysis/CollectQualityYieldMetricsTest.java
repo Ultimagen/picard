@@ -55,7 +55,7 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
 
         Assert.assertEquals(runPicardCommandLine(args), 0);
 
-        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, Comparable<?>> output = new MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, Comparable<?>>();
+        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, Comparable<?>> output = new MetricsFile<>();
         output.read(new FileReader(outfile));
 
         for (final CollectQualityYieldMetrics.QualityYieldMetrics metrics : output.getMetrics()) {
@@ -70,6 +70,8 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
                 Assert.assertEquals(metrics.PF_Q30_BASES, 3145);
                 Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 6497);
                 Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 6497);
+                Assert.assertEquals(metrics.RLQ30, 27);
+                Assert.assertEquals(metrics.RLQ25, 30);
         }
     }
 }
