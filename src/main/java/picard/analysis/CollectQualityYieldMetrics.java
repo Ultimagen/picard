@@ -29,6 +29,7 @@ import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.metrics.MetricBase;
 import htsjdk.samtools.metrics.MetricsFile;
 import htsjdk.samtools.reference.ReferenceSequence;
+import htsjdk.samtools.util.Histogram;
 import htsjdk.samtools.util.IOUtil;
 import org.broadinstitute.barclay.argparser.Argument;
 import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
@@ -37,6 +38,8 @@ import picard.cmdline.StandardOptionDefinitions;
 import picard.cmdline.programgroups.DiagnosticsAndQCProgramGroup;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Command line program to calculate quality yield metrics
@@ -131,6 +134,24 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         // of bases if there are supplemental alignments in the input file.
         public final boolean includeSupplementalAlignments;
 
+        private final List<Double> qualityAccumulator = new ArrayList<>();
+        private final List<Integer> qualityCount = new ArrayList<>();
+
+        private double[] qual2prob = {1.00000000e+00, 7.94328235e-01, 6.30957344e-01, 5.01187234e-01,
+                3.98107171e-01, 3.16227766e-01, 2.51188643e-01, 1.99526231e-01,
+                1.58489319e-01, 1.25892541e-01, 1.00000000e-01, 7.94328235e-02,
+                6.30957344e-02, 5.01187234e-02, 3.98107171e-02, 3.16227766e-02,
+                2.51188643e-02, 1.99526231e-02, 1.58489319e-02, 1.25892541e-02,
+                1.00000000e-02, 7.94328235e-03, 6.30957344e-03, 5.01187234e-03,
+                3.98107171e-03, 3.16227766e-03, 2.51188643e-03, 1.99526231e-03,
+                1.58489319e-03, 1.25892541e-03, 1.00000000e-03, 7.94328235e-04,
+                6.30957344e-04, 5.01187234e-04, 3.98107171e-04, 3.16227766e-04,
+                2.51188643e-04, 1.99526231e-04, 1.58489319e-04, 1.25892541e-04,
+                1.00000000e-04, 7.94328235e-05, 6.30957344e-05, 5.01187234e-05,
+                3.98107171e-05, 3.16227766e-05, 2.51188643e-05, 1.99526231e-05,
+                1.58489319e-05, 1.25892541e-05, 1.00000000e-05, 7.94328235e-06,
+                6.30957344e-06, 5.01187234e-06, 3.98107171e-06, 3.16227766e-06,
+                2.51188643e-06, 1.99526231e-06, 1.58489319e-06, 1.25892541e-06};
         // The metrics to be accumulated
         private final QualityYieldMetrics metrics = new QualityYieldMetrics();
 
@@ -186,6 +207,21 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
                     }
                 }
             }
+            if (rec.getReadNegativeStrandFlag()) {
+                reverseArray(quals);
+            }
+            int count = 0 ;
+            for(final int qual: quals ) {
+                Double prob = qual2prob[qual];
+                if (count < qualityAccumulator.size()){
+                    qualityAccumulator.set(count, qualityAccumulator.get(count) + prob);
+                    qualityCount.set(count, qualityCount.get(count)+1);
+                } else {
+                    qualityAccumulator.add(count, prob);
+                    qualityCount.add(count,1);
+                }
+                count ++;
+            }
         }
 
         public void finish() {
@@ -193,11 +229,44 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             metrics.PF_Q20_EQUIVALENT_YIELD = metrics.PF_Q20_EQUIVALENT_YIELD / 20;
 
             metrics.calculateDerivedFields();
+            metrics.RLQ30 = calculateLQ(30);
+            metrics.RLQ25 = calculateLQ(25);
+
         }
 
         public void addMetricsToFile(final MetricsFile<QualityYieldMetrics, Integer> metricsFile) {
             metricsFile.addMetric(metrics);
         }
+
+        private int calculateLQ(final double threshold){
+            double error_prob_threshold = Math.pow(10, -(double)threshold/10);
+            final int OFFSET = 10;
+            int cur_result = 0 ;
+            List<Double> result = new ArrayList<>();
+            for (int i = OFFSET; i < qualityAccumulator.size(); i++ ){
+                if (qualityCount.get(i) < 50){
+                    break;
+                }
+                result.add(qualityAccumulator.get(i)/qualityCount.get(i));
+            }
+            double cumsum = 0;
+            for (int i = 0; i < result.size(); i++){
+                cumsum += result.get(i);
+                if (cumsum/(i+1) < error_prob_threshold) {
+                    cur_result = i+1+OFFSET;
+                }
+            }
+            return cur_result;
+        }
+
+        private void reverseArray(final byte[] array) {
+            for (int i=0, j=array.length-1; i<j; ++i, --j) {
+                final byte tmp = array[i];
+                array[i] = array[j];
+                array[j] = tmp;
+            }
+        }
+
     }
 
     /**
@@ -277,6 +346,12 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
 
             this.READ_LENGTH = this.TOTAL_READS == 0 ? 0 : (int) (this.TOTAL_BASES / this.TOTAL_READS);
         }
+        /** The average read length until the average base quality is above 30 */
+        public long RLQ30 = 0;
+
+        /** The average read length until the average base quality is above 25 */
+        public long RLQ25 = 0;
+
     }
 
 }
