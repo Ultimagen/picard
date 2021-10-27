@@ -349,7 +349,7 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         /** The average read length until the average base quality is above 30 */
         public long RLQ30 = 0;
 
-        /** The average read length until the average base quality is above 25 */
+        /** The average read length until the average base quality is below 25 */
         public long RLQ25 = 0;
 
     }
