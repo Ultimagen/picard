@@ -133,9 +133,6 @@ public class AlignmentSummaryMetrics extends MultilevelMetrics {
     /** The standard deviation of the read lengths. Computed using all read lengths including clipped bases. */
     public double SD_READ_LENGTH;
 
-    /** The median read length. Computed using all read lengths including clipped bases. */
-    public double MEDIAN_READ_LENGTH;
-
     /**
      * The median absolute deviation of the distribution of all read lengths.  If the distribution is
      * essentially normal then the standard deviation can be estimated as ~1.4826 * MAD. Computed using all
