@@ -239,12 +239,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     @Argument(doc = "Treat tm:Q as tm:A. Default false.")
     public boolean FLOW_Q_IS_KNOWN_END = false;
 
-    @Argument(doc = "debug log ultima new dup logic. Default false.")
-    public boolean DEBUG_ULTIMA_DUPS = false;
-
-    @Argument(doc = "debug log ultima new dup logic: read name. Default null.", optional = true)
-    public List<String> DEBUG_ULTIMA_READ_NAME = null;
-
     private SortingCollection<ReadEndsForMarkDuplicates> pairSort;
     private SortingCollection<ReadEndsForMarkDuplicates> fragSort;
     private SortingLongCollection duplicateIndexes;
@@ -701,17 +695,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 ends.score = DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
         }
 
-        if ( DEBUG_ULTIMA_DUPS || isDebugUltimaRead(rec) )
-            log.info(String.format("%d [%s %s] : %d-%d : %d-%d : tm:%s => %d-%d(%d) %f",
-                ends.read1IndexInFile,
-                rec.getReadName(),
-                    rec.getReadNegativeStrandFlag() ? "R" : "N",
-                rec.getUnclippedStart(), rec.getUnclippedEnd(),
-                rec.getAlignmentStart(), rec.getAlignmentEnd(),
-                rec.getAttribute("tm"),
-                ends.read1Coordinate, ends.read1Coordinate2, ends.read1Coordinate2Uncertainty,
-                    ends.score));
-
         // Fill in the library ID
         ends.libraryId = libraryIdGenerator.getLibraryId(rec);
 
@@ -746,10 +729,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
 
         return ends;
-    }
-
-    private boolean isDebugUltimaRead(SAMRecord rec) {
-        return DEBUG_ULTIMA_READ_NAME != null && DEBUG_ULTIMA_READ_NAME.contains(rec.getReadName());
     }
 
     /**
@@ -1070,12 +1049,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                     addIndexAsDuplicate(end.read1IndexInFile);
                 }
             }
-
-            if ( DEBUG_ULTIMA_DUPS ) {
-                log.info("markDuplicateFragments: best maked with *");
-                for (final ReadEndsForMarkDuplicates end : list)
-                    log.info(end.toString() + ((end == best) ? "*" : ""));
-            }
         }
     }
 
@@ -1176,7 +1149,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
     private int getFlowSumOfBaseQualities(SAMRecord rec, int start, int end) {
         int score = 0;
-        boolean     debug = isDebugUltimaRead(rec);
 
         // reversed?
         if ( rec.getReadNegativeStrandFlag() ) {
