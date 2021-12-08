@@ -31,6 +31,7 @@ import htsjdk.samtools.metrics.MetricsFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Histogram;
 import htsjdk.samtools.util.IOUtil;
+import htsjdk.samtools.util.QualityUtil;
 import org.broadinstitute.barclay.argparser.Argument;
 import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
 import org.broadinstitute.barclay.help.DocumentedFeature;
@@ -137,21 +138,6 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         private final List<Double> qualityAccumulator = new ArrayList<>();
         private final List<Integer> qualityCount = new ArrayList<>();
 
-        private double[] qual2prob = {1.00000000e+00, 7.94328235e-01, 6.30957344e-01, 5.01187234e-01,
-                3.98107171e-01, 3.16227766e-01, 2.51188643e-01, 1.99526231e-01,
-                1.58489319e-01, 1.25892541e-01, 1.00000000e-01, 7.94328235e-02,
-                6.30957344e-02, 5.01187234e-02, 3.98107171e-02, 3.16227766e-02,
-                2.51188643e-02, 1.99526231e-02, 1.58489319e-02, 1.25892541e-02,
-                1.00000000e-02, 7.94328235e-03, 6.30957344e-03, 5.01187234e-03,
-                3.98107171e-03, 3.16227766e-03, 2.51188643e-03, 1.99526231e-03,
-                1.58489319e-03, 1.25892541e-03, 1.00000000e-03, 7.94328235e-04,
-                6.30957344e-04, 5.01187234e-04, 3.98107171e-04, 3.16227766e-04,
-                2.51188643e-04, 1.99526231e-04, 1.58489319e-04, 1.25892541e-04,
-                1.00000000e-04, 7.94328235e-05, 6.30957344e-05, 5.01187234e-05,
-                3.98107171e-05, 3.16227766e-05, 2.51188643e-05, 1.99526231e-05,
-                1.58489319e-05, 1.25892541e-05, 1.00000000e-05, 7.94328235e-06,
-                6.30957344e-06, 5.01187234e-06, 3.98107171e-06, 3.16227766e-06,
-                2.51188643e-06, 1.99526231e-06, 1.58489319e-06, 1.25892541e-06};
         // The metrics to be accumulated
         private final QualityYieldMetrics metrics = new QualityYieldMetrics();
 
@@ -212,7 +198,7 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             }
             int count = 0 ;
             for(final int qual: quals ) {
-                Double prob = qual2prob[qual];
+                Double prob = QualityUtil.getErrorProbabilityFromPhredScore(qual);
                 if (count < qualityAccumulator.size()){
                     qualityAccumulator.set(count, qualityAccumulator.get(count) + prob);
                     qualityCount.set(count, qualityCount.get(count)+1);
