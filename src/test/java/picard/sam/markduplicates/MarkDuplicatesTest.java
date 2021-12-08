@@ -45,6 +45,8 @@ import java.util.*;
 public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgramTest {
     protected static String TEST_BASE_NAME = null;
     protected static File TEST_DATA_DIR = null;
+    final static String   FLOW_ORDER = "TGCA";
+
 
     @BeforeClass
     public void setUp() {
@@ -383,6 +385,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         tester.getSamRecordSetBuilder().setReadLength(74);
         tester.addMappedFragment(0, 12, true, 50);
         tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=false");
+        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
 
         // End location is significant
@@ -392,6 +395,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         tester.getSamRecordSetBuilder().setReadLength(74);
         tester.addMappedFragment(0, 12, false, 50);
         tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
+        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
     }
 
@@ -406,6 +410,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         tester.getSamRecordSetBuilder().setReadLength(74);
         tester.addMappedFragment(0, 12, false, "74M", 50);
         tester.addArg("FLOW_USE_CLIPPED_LOCATIONS=false");
+        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
 
         // Use clipped locations (meaning, use clipped)
@@ -415,6 +420,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         tester.getSamRecordSetBuilder().setReadLength(74);
         tester.addMappedFragment(0, 12, true, "74M", 50);
         tester.addArg("FLOW_USE_CLIPPED_LOCATIONS=true");
+        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
 
         // Use clipped locations (meaning, use clipped)
@@ -425,6 +431,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         tester.addMappedFragment(0, 11, false, "78M", 50);
         tester.addArg("FLOW_USE_CLIPPED_LOCATIONS=false");
         tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
+        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
 
         // Use clipped locations (meaning, use clipped)
@@ -435,6 +442,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         tester.addMappedFragment(0, 11, false, "78M", 50);
         tester.addArg("FLOW_USE_CLIPPED_LOCATIONS=true");
         tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
+        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
     }
 
@@ -455,6 +463,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         System.arraycopy("TGGCA".getBytes(), 0, records[1].getReadBases(), records[1].getReadBases().length - 5, 4);
         tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
         tester.addArg("FLOW_SKIP_START_HOMOPOLYMERS=0");
+        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
 
         // Do not use clipped locations (meaning, use unclipped)
@@ -465,10 +474,11 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
         System.arraycopy("ACGTT".getBytes(), 0, records[0].getReadBases(), 0, 5);
         System.arraycopy("TTGCA".getBytes(), 0, records[0].getReadBases(), records[0].getReadBases().length - 5, 4);
-        System.arraycopy("ACGGT".getBytes(), 0, records[1].getReadBases(), 0, 5);
+        System.arraycopy("CCGGT".getBytes(), 0, records[1].getReadBases(), 0, 5);
         System.arraycopy("TGGCA".getBytes(), 0, records[1].getReadBases(), records[1].getReadBases().length - 5, 4);
         tester.addArg("FLOW_END_LOCATION_SIGNIFICANT=true");
         tester.addArg("FLOW_SKIP_START_HOMOPOLYMERS=3");
+        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
     }
 
@@ -489,6 +499,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         System.arraycopy("AAAC".getBytes(), 0, records[0].getReadBases(), 0, 4);
         System.arraycopy("AACC".getBytes(), 0, records[1].getReadBases(), 0, 4);
         tester.addArg("FLOW_QUALITY_SUM_STRATEGY=false");
+        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
 
         // flow (homopolymer based) sum
@@ -503,6 +514,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         System.arraycopy("AAAC".getBytes(), 0, records[0].getReadBases(), 0, 4);
         System.arraycopy("AACC".getBytes(), 0, records[1].getReadBases(), 0, 4);
         tester.addArg("FLOW_QUALITY_SUM_STRATEGY=true");
+        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
     }
 }

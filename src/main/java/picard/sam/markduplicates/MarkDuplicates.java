@@ -1179,21 +1179,23 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     }
 
     private int getSelectedRecordStart(final SAMRecord rec, Integer endUncertainty) {
-        if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
+        byte[]      flowOrder = getFlowOrder(rec);
+
+        if ( flowOrder == null )
+            return rec.getUnclippedStart();
+        else if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
             byte[]      bases = rec.getReadBases();
             int         ofs = 0;
             byte        hmerBase = bases[ofs];
-            byte[]      flowOrder = getFlowOrder(rec);
             int         flowOrderOfs = 0;
             int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
 
             // advance flow order to base
-            if ( flowOrder != null )
-                while ( flowOrder[flowOrderOfs] != hmerBase ) {
-                    if (++flowOrderOfs >= flowOrder.length)
-                        flowOrderOfs = 0;
-                    hmersLeft--;
-                }
+            while ( flowOrder[flowOrderOfs] != hmerBase ) {
+                if (++flowOrderOfs >= flowOrder.length)
+                    flowOrderOfs = 0;
+                hmersLeft--;
+            }
 
             int         hmerSize = 1;
             for ( ; hmerSize < bases.length ; hmerSize++ )
@@ -1202,17 +1204,15 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                         break;
                     else {
                         hmerBase = bases[ofs + hmerSize];
-                        if ( flowOrder != null ) {
+                        if ( ++flowOrderOfs >= flowOrder.length )
+                            flowOrderOfs = 0;
+                        while ( flowOrder[flowOrderOfs] != hmerBase ) {
+                            hmersLeft--;
                             if ( ++flowOrderOfs >= flowOrder.length )
                                 flowOrderOfs = 0;
-                            while ( flowOrder[flowOrderOfs] != hmerBase ) {
-                                hmersLeft--;
-                                if ( ++flowOrderOfs >= flowOrder.length )
-                                    flowOrderOfs = 0;
-                            }
-                            if ( hmersLeft <= 0 )
-                                break;
                         }
+                        if ( hmersLeft <= 0 )
+                            break;
                     }
                 }
             int     start = rec.getUnclippedStart() + hmerSize;
@@ -1229,21 +1229,23 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     }
 
     private int getSelectedRecordEnd(final SAMRecord rec, Integer endUncertainty) {
-        if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
+        byte[]      flowOrder = getFlowOrder(rec);
+
+        if ( flowOrder == null )
+            return rec.getUnclippedEnd();
+        else if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
             byte[]      bases = rec.getReadBases();
             int         ofs = 0;
             byte        hmerBase = bases[bases.length - 1 - ofs];
-            byte[]      flowOrder = getFlowOrder(rec);
             int         flowOrderOfs = 0;
             int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
 
             // advance flow order to base
-            if ( flowOrder != null )
-                while ( flowOrder[flowOrderOfs] != hmerBase ) {
-                    if (++flowOrderOfs >= flowOrder.length)
-                        flowOrderOfs = 0;
-                    hmersLeft--;
-                }
+            while ( flowOrder[flowOrderOfs] != hmerBase ) {
+                if (++flowOrderOfs >= flowOrder.length)
+                    flowOrderOfs = 0;
+                hmersLeft--;
+            }
 
             int         hmerSize = 1;
             for ( ; hmerSize < bases.length ; hmerSize++ )
@@ -1252,17 +1254,15 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                         break;
                     else {
                         hmerBase = bases[bases.length - 1 - hmerSize - ofs];
-                        if ( flowOrder != null ) {
+                        if (++flowOrderOfs >= flowOrder.length)
+                            flowOrderOfs = 0;
+                        while (flowOrder[flowOrderOfs] != hmerBase) {
+                            hmersLeft--;
                             if (++flowOrderOfs >= flowOrder.length)
                                 flowOrderOfs = 0;
-                            while (flowOrder[flowOrderOfs] != hmerBase) {
-                                hmersLeft--;
-                                if (++flowOrderOfs >= flowOrder.length)
-                                    flowOrderOfs = 0;
-                            }
-                            if (hmersLeft <= 0)
-                                break;
                         }
+                        if (hmersLeft <= 0)
+                            break;
                     }
                 }
             int     end = rec.getUnclippedEnd() - hmerSize;
