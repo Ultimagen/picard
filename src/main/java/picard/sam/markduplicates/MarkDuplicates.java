@@ -681,9 +681,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
         else if ( FLOW_END_LOCATION_SIGNIFICANT ) {
-            AtomicInteger           endUncertainty = new AtomicInteger(ENDS_READ_UNCERTAINTY);
+            Integer           endUncertainty = ENDS_READ_UNCERTAINTY;
             ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, endUncertainty) : getSelectedRecordStart(rec, endUncertainty);
-            ends.read1Coordinate2Uncertainty = endUncertainty.intValue();
+            ends.read1Coordinate2Uncertainty = endUncertainty;
             if ( ends.read1Coordinate2 == END_INSIGNIFICANT )
                 ends.score = -1;
         }
@@ -1178,7 +1178,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
     }
 
-    private int getSelectedRecordStart(final SAMRecord rec, AtomicInteger endUncertainty) {
+    private int getSelectedRecordStart(final SAMRecord rec, Integer endUncertainty) {
         if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
             byte[]      bases = rec.getReadBases();
             int         ofs = 0;
@@ -1228,7 +1228,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             return rec.getUnclippedStart();
     }
 
-    private int getSelectedRecordEnd(final SAMRecord rec, AtomicInteger endUncertainty) {
+    private int getSelectedRecordEnd(final SAMRecord rec, Integer endUncertainty) {
         if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
             byte[]      bases = rec.getReadBases();
             int         ofs = 0;
