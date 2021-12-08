@@ -636,7 +636,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                                     pairedEnds.orientation == ReadEnds.R);
                         }
 
-                        if ( FLOW_QUALITY_SUM_STRATEGY && isFlow(rec) )
+                        if ( FLOW_QUALITY_SUM_STRATEGY )
                             pairedEnds.score += computeFlowDuplicateScore(rec, pairedEnds.read1Coordinate, pairedEnds.read1Coordinate2);
                         else
                             pairedEnds.score += DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
@@ -689,7 +689,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
 
         if ( ends.score == 0 ) {
-            if (FLOW_QUALITY_SUM_STRATEGY && isFlow(rec))
+            if (FLOW_QUALITY_SUM_STRATEGY)
                 ends.score = computeFlowDuplicateScore(rec, ends.read1Coordinate, ends.read1Coordinate2);
             else
                 ends.score = DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
@@ -1125,10 +1125,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
             return compareDifference;
         }
-    }
-
-    private boolean isFlow(SAMRecord rec) {
-        return rec.hasAttribute("tp");
     }
 
     private double computeFlowDuplicateScore(SAMRecord rec, int start, int end) {
