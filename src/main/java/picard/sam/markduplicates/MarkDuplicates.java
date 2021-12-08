@@ -1181,9 +1181,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     private int getSelectedRecordStart(final SAMRecord rec, Integer endUncertainty) {
         byte[]      flowOrder = getFlowOrder(rec);
 
-        if ( flowOrder == null )
+        if ( flowOrder == null ) {
             return rec.getUnclippedStart();
-        else if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
+        } else if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
             byte[]      bases = rec.getReadBases();
             int         ofs = 0;
             byte        hmerBase = bases[ofs];
@@ -1192,48 +1192,54 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
             // advance flow order to base
             while ( flowOrder[flowOrderOfs] != hmerBase ) {
-                if (++flowOrderOfs >= flowOrder.length)
+                if (++flowOrderOfs >= flowOrder.length) {
                     flowOrderOfs = 0;
+                }
                 hmersLeft--;
             }
 
             int         hmerSize = 1;
-            for ( ; hmerSize < bases.length ; hmerSize++ )
+            for ( ; hmerSize < bases.length ; hmerSize++ ) {
                 if (bases[ofs + hmerSize] != hmerBase) {
-                    if ( --hmersLeft <= 0 )
+                    if (--hmersLeft <= 0) {
                         break;
-                    else {
+                    } else {
                         hmerBase = bases[ofs + hmerSize];
-                        if ( ++flowOrderOfs >= flowOrder.length )
+                        if (++flowOrderOfs >= flowOrder.length) {
                             flowOrderOfs = 0;
-                        while ( flowOrder[flowOrderOfs] != hmerBase ) {
-                            hmersLeft--;
-                            if ( ++flowOrderOfs >= flowOrder.length )
-                                flowOrderOfs = 0;
                         }
-                        if ( hmersLeft <= 0 )
+                        while (flowOrder[flowOrderOfs] != hmerBase) {
+                            hmersLeft--;
+                            if (++flowOrderOfs >= flowOrder.length) {
+                                flowOrderOfs = 0;
+                            }
+                        }
+                        if (hmersLeft <= 0) {
                             break;
+                        }
                     }
                 }
+            }
             int     start = rec.getUnclippedStart() + hmerSize;
             return FLOW_USE_CLIPPED_LOCATIONS ? Math.max(start, rec.getAlignmentStart()) : start;
-        }
-        else if ( tmTagContains(rec, 'A', FLOW_Q_IS_KNOWN_END ? 'Q' : '\0') )
+
+        } else if ( tmTagContains(rec, 'A', FLOW_Q_IS_KNOWN_END ? 'Q' : '\0') ) {
             return rec.getUnclippedStart();
-        else if ( endUncertainty != null && tmTagContains(rec, 'Q', 'Z') )
+        } else if ( endUncertainty != null && tmTagContains(rec, 'Q', 'Z') ) {
             return END_INSIGNIFICANT;
-        else if ( FLOW_USE_CLIPPED_LOCATIONS )
+        } else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
             return rec.getAlignmentStart();
-        else
+        } else {
             return rec.getUnclippedStart();
+        }
     }
 
     private int getSelectedRecordEnd(final SAMRecord rec, Integer endUncertainty) {
         byte[]      flowOrder = getFlowOrder(rec);
 
-        if ( flowOrder == null )
+        if ( flowOrder == null ) {
             return rec.getUnclippedEnd();
-        else if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
+        } else if ( endUncertainty == null && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
             byte[]      bases = rec.getReadBases();
             int         ofs = 0;
             byte        hmerBase = bases[bases.length - 1 - ofs];
@@ -1242,56 +1248,64 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
             // advance flow order to base
             while ( flowOrder[flowOrderOfs] != hmerBase ) {
-                if (++flowOrderOfs >= flowOrder.length)
+                if (++flowOrderOfs >= flowOrder.length) {
                     flowOrderOfs = 0;
+                }
                 hmersLeft--;
             }
 
             int         hmerSize = 1;
-            for ( ; hmerSize < bases.length ; hmerSize++ )
+            for ( ; hmerSize < bases.length ; hmerSize++ ) {
                 if (bases[bases.length - 1 - hmerSize - ofs] != hmerBase) {
-                    if ( --hmersLeft <= 0 )
+                    if (--hmersLeft <= 0) {
                         break;
-                    else {
+                    } else {
                         hmerBase = bases[bases.length - 1 - hmerSize - ofs];
-                        if (++flowOrderOfs >= flowOrder.length)
+                        if (++flowOrderOfs >= flowOrder.length) {
                             flowOrderOfs = 0;
+                        }
                         while (flowOrder[flowOrderOfs] != hmerBase) {
                             hmersLeft--;
-                            if (++flowOrderOfs >= flowOrder.length)
+                            if (++flowOrderOfs >= flowOrder.length) {
                                 flowOrderOfs = 0;
+                            }
                         }
-                        if (hmersLeft <= 0)
+                        if (hmersLeft <= 0) {
                             break;
+                        }
                     }
                 }
+            }
             int     end = rec.getUnclippedEnd() - hmerSize;
             return FLOW_USE_CLIPPED_LOCATIONS ? Math.min(end, rec.getAlignmentEnd()) : end;
-        }
-        else if ( tmTagContains(rec, 'A', FLOW_Q_IS_KNOWN_END ? 'Q' : '\0') )
+
+        } else if ( tmTagContains(rec, 'A', FLOW_Q_IS_KNOWN_END ? 'Q' : '\0') ) {
             return rec.getUnclippedEnd();
-        else if ( endUncertainty != null && tmTagContains(rec, 'Q', 'Z') )
+        } else if ( endUncertainty != null && tmTagContains(rec, 'Q', 'Z') ) {
             return END_INSIGNIFICANT;
-        else if ( FLOW_USE_CLIPPED_LOCATIONS )
+        } else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
             return rec.getAlignmentEnd();
-        else
+        } else {
             return rec.getUnclippedEnd();
+        }
     }
 
     public static boolean tmTagContains(final SAMRecord rec, final char ch1, final char ch2) {
         final String        tm = rec.getStringAttribute("tm");
-        if ( tm == null )
+        if ( tm == null ) {
             return false;
-        else
+        } else {
             return tm.indexOf(ch1) >= 0 || (ch2 != '\0' && tm.indexOf(ch2) >= 0);
+        }
     }
 
     private byte[] getFlowOrder(final SAMRecord rec) {
         SAMFileHeader       header = rec.getHeader();
         for ( SAMReadGroupRecord rg : header.getReadGroups() ) {
             String      flowOrder = rg.getFlowOrder();
-            if ( flowOrder != null )
+            if ( flowOrder != null ) {
                 return flowOrder.getBytes();
+            }
         }
         return null;
     }
