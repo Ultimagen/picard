@@ -205,10 +205,10 @@ public class RevertSam extends CommandLineProgram {
     }};
 
     @Argument(shortName="RV", doc="Attributes on negative strand reads that need to be reversed.", optional = true)
-    public Set<String> ATTRIBUTE_TO_REVERSE = new TreeSet<>(SAMRecord.TAGS_TO_REVERSE);
+    public Set<String> ATTRIBUTE_TO_REVERSE = new LinkedHashSet<>(SAMRecord.TAGS_TO_REVERSE);
 
     @Argument(shortName="RC", doc="Attributes on negative strand reads that need to be reverse complemented.", optional = true)
-    public Set<String> ATTRIBUTE_TO_REVERSE_COMPLEMENT = new TreeSet<>(SAMRecord.TAGS_TO_REVERSE_COMPLEMENT);
+    public Set<String> ATTRIBUTE_TO_REVERSE_COMPLEMENT = new LinkedHashSet<>(SAMRecord.TAGS_TO_REVERSE_COMPLEMENT);
 
     @Argument(doc = "WARNING: This option is potentially destructive. If enabled will discard reads in order to produce " +
             "a consistent output BAM. Reads discarded include (but are not limited to) paired reads with missing " +
