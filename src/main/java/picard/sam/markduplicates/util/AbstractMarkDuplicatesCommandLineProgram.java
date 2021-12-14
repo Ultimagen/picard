@@ -219,7 +219,7 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
             ++metrics.SECONDARY_OR_SUPPLEMENTARY_RDS;
         } else if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
             ++metrics.UNPAIRED_READS_EXAMINED;
-            if ( isKnownFragment(rec) )
+            if ( isUnpairedReadKnownFragment(rec) )
                 ++metrics.UNPAIRED_READS_KNOWN_FRAGMENT_EXAMINED;
         } else {
             ++metrics.READ_PAIRS_EXAMINED; // will need to be divided by 2 at the end
@@ -234,7 +234,7 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
             if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
                 ++metrics.UNPAIRED_READ_DUPLICATES;
 
-                if ( isKnownFragment(rec) )
+                if ( isUnpairedReadKnownFragment(rec) )
                     ++metrics.UNPAIRED_READS_DUPLICATES_KNOWN_FRAGMENT;
                 else
                     ++metrics.UNPAIRED_READS_DUPLICATES_SINGLE_END;
@@ -247,7 +247,7 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
     /**
      * both ends are known
      */
-    private static boolean isKnownFragment(final SAMRecord rec) {
+    private static boolean isUnpairedReadKnownFragment(final SAMRecord rec) {
         if ( rec.getReadUnmappedFlag() )
             return false;
         else if ( MarkDuplicates.tmTagContains(rec,MarkDuplicates.TM_TAG_CONTAINS_A) )
