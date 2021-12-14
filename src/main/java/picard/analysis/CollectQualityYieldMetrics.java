@@ -332,10 +332,13 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
 
             this.READ_LENGTH = this.TOTAL_READS == 0 ? 0 : (int) (this.TOTAL_BASES / this.TOTAL_READS);
         }
+
         /** The average read length until the average base quality is above 30 */
+        @NoMergingIsDerived
         public long RLQ30 = 0;
 
         /** The average read length until the average base quality is below 25 */
+        @NoMergingIsDerived
         public long RLQ25 = 0;
 
     }
