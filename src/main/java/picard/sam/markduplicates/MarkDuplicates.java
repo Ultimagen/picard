@@ -880,8 +880,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
         if (areComparable && compareRead2) {
             areComparable = lhs.read2ReferenceIndex == rhs.read2ReferenceIndex &&
-                    lhs.read2Coordinate == rhs.read2Coordinate &&
-                    lhs.read2Coordinate2 == rhs.read2Coordinate2;
+                    lhs.read2Coordinate == rhs.read2Coordinate;
         }
 
         return areComparable;
