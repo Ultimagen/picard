@@ -1039,7 +1039,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     /**
      * Comparator for ReadEndsForMarkDuplicates that orders by read1 position then pair orientation then read2 position.
      */
-    private class ReadEndsMDComparator implements Comparator<ReadEndsForMarkDuplicates> {
+    private static class ReadEndsMDComparator implements Comparator<ReadEndsForMarkDuplicates> {
 
         final boolean useBarcodes;
 
