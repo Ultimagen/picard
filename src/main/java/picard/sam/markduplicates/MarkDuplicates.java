@@ -685,8 +685,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             Integer           endUncertainty = ENDS_READ_UNCERTAINTY;
             ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, endUncertainty) : getSelectedRecordStart(rec, endUncertainty);
             ends.read1Coordinate2Uncertainty = endUncertainty;
-            if ( ends.read1Coordinate2 == END_INSIGNIFICANT )
-                ends.score = -1;
         }
 
         if ( ends.score == 0 ) {
@@ -1129,6 +1127,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     }
 
     private short computeFlowDuplicateScore(SAMRecord rec, int start, int end) {
+
+        if ( end == END_INSIGNIFICANT )
+            return -1;
 
         Short storedScore = (Short)rec.getTransientAttribute(ATTR_DUPLICATE_SCORE);
         if ( storedScore == null ) {
