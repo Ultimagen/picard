@@ -672,7 +672,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends = new ReadEndsForMarkDuplicates();
         }
         ends.read1ReferenceIndex = rec.getReferenceIndex();
-        ends.read1Coordinate = !rec.getReadNegativeStrandFlag() ? getSelectedRecordStart(rec, false) : getSelectedRecordEnd(rec, false);
+        ends.read1Coordinate = getReadEndCoordinate(rec, !rec.getReadNegativeStrandFlag(), true);
         ends.orientation = rec.getReadNegativeStrandFlag() ? ReadEnds.R : ReadEnds.F;
         ends.read1IndexInFile = index;
 
@@ -681,7 +681,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
         else if ( FLOW_END_LOCATION_SIGNIFICANT ) {
-            ends.read1Coordinate2 = !rec.getReadNegativeStrandFlag() ? getSelectedRecordEnd(rec, true) : getSelectedRecordStart(rec, true);
+            ends.read1Coordinate2 = getReadEndCoordinate(rec, rec.getReadNegativeStrandFlag(), false);
             ends.read1Coordinate2Uncertainty = ENDS_READ_UNCERTAINTY;
         }
 
@@ -1157,15 +1157,17 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         return score;
     }
 
-    private int getSelectedRecordStart(final SAMRecord rec, boolean allowForUncertainty) {
-        byte[]      flowOrder = getFlowOrder(rec);
+    private int getReadEndCoordinate(final SAMRecord rec, final boolean start, final boolean certain) {
+        final byte[]        flowOrder = getFlowOrder(rec);
+        final int           unclippedCoor = start ? rec.getUnclippedStart() : rec.getUnclippedEnd();
+        final int           alignmentCoor = start ? rec.getAlignmentStart() : rec.getAlignmentEnd();
 
         if ( flowOrder == null ) {
-            return rec.getUnclippedStart();
-        } else if ( !allowForUncertainty && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
+            return unclippedCoor;
+        } else if ( certain && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
             byte[]      bases = rec.getReadBases();
             int         ofs = 0;
-            byte        hmerBase = bases[ofs];
+            byte        hmerBase = start ? bases[ofs] : bases[bases.length - 1 - ofs];
             int         flowOrderOfs = 0;
             int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
 
@@ -1179,11 +1181,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
             int         hmerSize = 1;
             for ( ; hmerSize < bases.length ; hmerSize++ ) {
-                if (bases[ofs + hmerSize] != hmerBase) {
+                if ((start ? bases[ofs + hmerSize] : bases[bases.length - 1 - hmerSize - ofs]) != hmerBase) {
                     if (--hmersLeft <= 0) {
                         break;
                     } else {
-                        hmerBase = bases[ofs + hmerSize];
+                        hmerBase = start ? bases[ofs + hmerSize] : bases[bases.length - 1 - hmerSize - ofs];
                         if (++flowOrderOfs >= flowOrder.length) {
                             flowOrderOfs = 0;
                         }
@@ -1199,73 +1201,18 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                     }
                 }
             }
-            int     start = rec.getUnclippedStart() + hmerSize;
-            return FLOW_USE_CLIPPED_LOCATIONS ? Math.max(start, rec.getAlignmentStart()) : start;
-
+            int     coor = unclippedCoor + (start ? hmerSize : -hmerSize);
+            return FLOW_USE_CLIPPED_LOCATIONS
+                    ? (start ? Math.max(coor, alignmentCoor) : Math.min(coor, alignmentCoor))
+                    : coor;
         } else if ( tmTagContains(rec, 'A', FLOW_Q_IS_KNOWN_END ? 'Q' : '\0') ) {
-            return rec.getUnclippedStart();
-        } else if ( allowForUncertainty && tmTagContains(rec, 'Q', 'Z') ) {
+            return unclippedCoor;
+        } else if ( !certain && tmTagContains(rec, 'Q', 'Z') ) {
             return END_INSIGNIFICANT;
         } else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
-            return rec.getAlignmentStart();
+            return alignmentCoor;
         } else {
-            return rec.getUnclippedStart();
-        }
-    }
-
-    private int getSelectedRecordEnd(final SAMRecord rec, boolean allowForUncertainty) {
-        byte[]      flowOrder = getFlowOrder(rec);
-
-        if ( flowOrder == null ) {
-            return rec.getUnclippedEnd();
-        } else if ( !allowForUncertainty && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
-            byte[]      bases = rec.getReadBases();
-            int         ofs = 0;
-            byte        hmerBase = bases[bases.length - 1 - ofs];
-            int         flowOrderOfs = 0;
-            int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
-
-            // advance flow order to base
-            while ( flowOrder[flowOrderOfs] != hmerBase ) {
-                if (++flowOrderOfs >= flowOrder.length) {
-                    flowOrderOfs = 0;
-                }
-                hmersLeft--;
-            }
-
-            int         hmerSize = 1;
-            for ( ; hmerSize < bases.length ; hmerSize++ ) {
-                if (bases[bases.length - 1 - hmerSize - ofs] != hmerBase) {
-                    if (--hmersLeft <= 0) {
-                        break;
-                    } else {
-                        hmerBase = bases[bases.length - 1 - hmerSize - ofs];
-                        if (++flowOrderOfs >= flowOrder.length) {
-                            flowOrderOfs = 0;
-                        }
-                        while (flowOrder[flowOrderOfs] != hmerBase) {
-                            hmersLeft--;
-                            if (++flowOrderOfs >= flowOrder.length) {
-                                flowOrderOfs = 0;
-                            }
-                        }
-                        if (hmersLeft <= 0) {
-                            break;
-                        }
-                    }
-                }
-            }
-            int     end = rec.getUnclippedEnd() - hmerSize;
-            return FLOW_USE_CLIPPED_LOCATIONS ? Math.min(end, rec.getAlignmentEnd()) : end;
-
-        } else if ( tmTagContains(rec, 'A', FLOW_Q_IS_KNOWN_END ? 'Q' : '\0') ) {
-            return rec.getUnclippedEnd();
-        } else if ( allowForUncertainty && tmTagContains(rec, 'Q', 'Z') ) {
-            return END_INSIGNIFICANT;
-        } else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
-            return rec.getAlignmentEnd();
-        } else {
-            return rec.getUnclippedEnd();
+            return unclippedCoor;
         }
     }
 
