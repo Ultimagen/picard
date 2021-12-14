@@ -250,7 +250,7 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
     private static boolean isUnpairedReadKnownFragment(final SAMRecord rec) {
         if ( rec.getReadUnmappedFlag() )
             return false;
-        else if ( MarkDuplicates.tmTagContains(rec,MarkDuplicates.TM_TAG_CONTAINS_A) )
+        else if ( MarkDuplicates.isAdapterClipped(rec) )
             return true;
         else if ( !rec.getReadNegativeStrandFlag() )
             return rec.getEnd() != rec.getUnclippedEnd();
