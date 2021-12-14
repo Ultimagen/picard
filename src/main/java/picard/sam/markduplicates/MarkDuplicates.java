@@ -1170,9 +1170,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if ( !flowOrder.isValid() ) {
             return unclippedCoor;
         } else if ( certain && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
-            byte[]      bases = rec.getReadBases();
-            int         ofs = 0;
-            byte        hmerBase = start ? bases[ofs] : bases[bases.length - 1 - ofs];
+            final byte[] bases = rec.getReadBases();
+            byte        hmerBase = start ? bases[0] : bases[bases.length - 1];
             int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
 
             // advance flow order to base
@@ -1183,11 +1182,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
             int         hmerSize;
             for ( hmerSize = 1; hmerSize < bases.length ; hmerSize++ ) {
-                if ((start ? bases[ofs + hmerSize] : bases[bases.length - 1 - hmerSize - ofs]) != hmerBase) {
+                if ((start ? bases[hmerSize] : bases[bases.length - 1 - hmerSize]) != hmerBase) {
                     if (--hmersLeft <= 0) {
                         break;
                     } else {
-                        hmerBase = start ? bases[ofs + hmerSize] : bases[bases.length - 1 - hmerSize - ofs];
+                        hmerBase = start ? bases[hmerSize] : bases[bases.length - 1 - hmerSize];
                         flowOrder.advance();
                         while (flowOrder.current() != hmerBase) {
                             flowOrder.advance();
@@ -1199,7 +1198,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                     }
                 }
             }
-            int     coor = unclippedCoor + (start ? hmerSize : -hmerSize);
+            final int     coor = unclippedCoor + (start ? hmerSize : -hmerSize);
             return FLOW_USE_CLIPPED_LOCATIONS
                     ? (start ? Math.max(coor, alignmentCoor) : Math.min(coor, alignmentCoor))
                     : coor;
