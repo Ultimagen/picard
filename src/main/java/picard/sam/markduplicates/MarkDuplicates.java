@@ -1163,24 +1163,21 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     }
 
     private int getReadEndCoordinate(final SAMRecord rec, final boolean start, final boolean certain) {
-        final byte[]        flowOrder = getFlowOrder(rec);
+        final FlowOrder     flowOrder = new FlowOrder(rec);
         final int           unclippedCoor = start ? rec.getUnclippedStart() : rec.getUnclippedEnd();
         final int           alignmentCoor = start ? rec.getAlignmentStart() : rec.getAlignmentEnd();
 
-        if ( flowOrder == null ) {
+        if ( !flowOrder.isValid() ) {
             return unclippedCoor;
         } else if ( certain && FLOW_SKIP_START_HOMOPOLYMERS != 0 ) {
             byte[]      bases = rec.getReadBases();
             int         ofs = 0;
             byte        hmerBase = start ? bases[ofs] : bases[bases.length - 1 - ofs];
-            int         flowOrderOfs = 0;
             int         hmersLeft = FLOW_SKIP_START_HOMOPOLYMERS;      // number of hmer left to trim
 
             // advance flow order to base
-            while ( flowOrder[flowOrderOfs] != hmerBase ) {
-                if (++flowOrderOfs >= flowOrder.length) {
-                    flowOrderOfs = 0;
-                }
+            while ( flowOrder.current() != hmerBase ) {
+                flowOrder.advance();
                 hmersLeft--;
             }
 
@@ -1191,14 +1188,10 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                         break;
                     } else {
                         hmerBase = start ? bases[ofs + hmerSize] : bases[bases.length - 1 - hmerSize - ofs];
-                        if (++flowOrderOfs >= flowOrder.length) {
-                            flowOrderOfs = 0;
-                        }
-                        while (flowOrder[flowOrderOfs] != hmerBase) {
+                        flowOrder.advance();
+                        while (flowOrder.current() != hmerBase) {
+                            flowOrder.advance();
                             hmersLeft--;
-                            if (++flowOrderOfs >= flowOrder.length) {
-                                flowOrderOfs = 0;
-                            }
                         }
                         if (hmersLeft <= 0) {
                             break;
@@ -1234,14 +1227,39 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
     }
 
-    private byte[] getFlowOrder(final SAMRecord rec) {
-        SAMFileHeader       header = rec.getHeader();
-        for ( SAMReadGroupRecord rg : header.getReadGroups() ) {
-            String      flowOrder = rg.getFlowOrder();
-            if ( flowOrder != null ) {
-                return flowOrder.getBytes();
+    /**
+     * private class used to represent use a SAMRecord's flow order, if such is present
+     */
+    static private class FlowOrder {
+
+        final byte[]    flowOrder;
+        int             ofs = 0;
+
+        private FlowOrder(final SAMRecord rec) {
+
+            // find flow order
+            SAMFileHeader       header = rec.getHeader();
+            for ( SAMReadGroupRecord rg : header.getReadGroups() ) {
+                if (rg.getFlowOrder() != null) {
+                    flowOrder = rg.getFlowOrder().getBytes();
+                    return;
+                }
+            }
+            flowOrder = null;
+        }
+
+        private boolean isValid() {
+            return flowOrder != null;
+        }
+
+        private void advance() {
+            if (++ofs >= flowOrder.length) {
+                ofs = 0;
             }
         }
-        return null;
+
+        private byte current() {
+            return flowOrder[ofs];
+        }
     }
 }
