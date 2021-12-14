@@ -109,7 +109,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "for detailed explanations of the output metrics." +
             "<hr />";
 
-    static public final int     END_INSIGNIFICANT = 0;
+    public static  final int   END_INSIGNIFICANT = 0;
     public static final String ATTR_DUPLICATE_SCORE = "DuplicateScore";
 
     /**
