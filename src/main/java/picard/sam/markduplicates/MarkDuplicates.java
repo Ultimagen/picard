@@ -42,7 +42,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A better duplication marking algorithm that handles all cases including clipped
@@ -873,9 +872,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if (areComparable) {
             areComparable = lhs.read1ReferenceIndex == rhs.read1ReferenceIndex &&
                     lhs.read1Coordinate == rhs.read1Coordinate &&
-                    withinRangeWithUncertainty(lhs.read1Coordinate2, rhs.read1Coordinate2,
-                                                Math.min(lhs.read1Coordinate2Uncertainty, rhs.read1Coordinate2Uncertainty),
-                                                lhsRead1Coordinate2Min, lhsRead1Coordinate2Max) &&
+                    (!endCoorSignificant(lhs.read1Coordinate2, rhs.read1Coordinate2) ||
+                     endCoorInRangeWithUncertainty(lhsRead1Coordinate2Min, lhsRead1Coordinate2Max, rhs.read1Coordinate2,
+                                                Math.min(lhs.read1Coordinate2Uncertainty, rhs.read1Coordinate2Uncertainty))) &&
                     lhs.orientation == rhs.orientation;
         }
 
@@ -888,25 +887,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         return areComparable;
     }
 
-    private boolean withinRangeWithUncertainty(int lhsCoor, int rhsCoor, int uncertainty, int lhsCoorMin, int lhsCoorMax) {
+    private boolean endCoorSignificant(final int lhsCoor, final int rhsCoor) {
+        return lhsCoor != END_INSIGNIFICANT && rhsCoor != END_INSIGNIFICANT;
+    }
 
-        // if any of the coordinates is insignificant, coornates are within by definition
-        if ( lhsCoor == END_INSIGNIFICANT || rhsCoor == END_INSIGNIFICANT )
-            return true;
-
-        // if no uncetainly, easy
-        if ( uncertainty == 0 )
-            return lhsCoor == rhsCoor;
-
-        // check that rhsCoor is with range or close enough to it
-        if ( rhsCoor >= lhsCoorMin && rhsCoor <= lhsCoorMax )
-            return true;
-        else if ( rhsCoor < lhsCoorMin && (lhsCoorMin - rhsCoor) <= uncertainty )
-            return true;
-        else if ( rhsCoor > lhsCoorMax && (rhsCoor - lhsCoorMax) <= uncertainty )
-            return true;
-        else
-            return false;
+    private boolean endCoorInRangeWithUncertainty(int lhsCoorMin, int lhsCoorMax, int rhsCoor, int uncertainty) {
+        return (rhsCoor >= (lhsCoorMin - uncertainty)) && (rhsCoor <= (lhsCoorMax + uncertainty));
     }
 
     private void addIndexAsDuplicate(final long bamIndex) {
