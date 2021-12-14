@@ -1120,7 +1120,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if ( storedScore == null ) {
             short score = 0;
 
-            score += (short) Math.min(getFlowSumOfBaseQualities(rec, start, end), Short.MAX_VALUE / 2);
+            score += (short) Math.min(getFlowSumOfBaseQualities(rec), Short.MAX_VALUE / 2);
 
             score += rec.getReadFailsVendorQualityCheckFlag() ? (short) (Short.MIN_VALUE / 2) : 0;
             storedScore = score;
@@ -1130,28 +1130,22 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         return storedScore;
     }
 
-    private int getFlowSumOfBaseQualities(SAMRecord rec, int start, int end) {
+    private int getFlowSumOfBaseQualities(final SAMRecord rec) {
         int score = 0;
 
-        // reversed?
-        if ( rec.getReadNegativeStrandFlag() ) {
-            int     tmp = start;
-            start = end;
-            end = tmp;
-        }
-
         // access qualities and bases
-        byte[]      quals = rec.getBaseQualities();
-        byte[]      bases = rec.getReadBases();
+        final byte[]      quals = rec.getBaseQualities();
+        final byte[]      bases = rec.getReadBases();
 
-        // establish range of bases/quals to work on
-        int         startingOffset = Math.max(0, start - rec.getUnclippedStart());
-        int         endOffset = Math.max(0, rec.getUnclippedEnd() - end);
+        // create iteration range and direction
+        final int         startingOffset = !rec.getReadNegativeStrandFlag() ? 0 : bases.length;
+        final int         endOffset = !rec.getReadNegativeStrandFlag() ? bases.length : 0;
+        final int         iterIncr = !rec.getReadNegativeStrandFlag() ? 1 : -1;
 
         // loop on bases, extract qual related to homopolymer from start of homopolymer
         byte        lastBase = 0;
         byte        effectiveQual = 0;
-        for ( int i = startingOffset ; i < bases.length - endOffset ; i++ ) {
+        for ( int i = startingOffset ; i != endOffset ; i += iterIncr ) {
             byte        base = bases[i];
             if ( base != lastBase )
                 effectiveQual = quals[i];
@@ -1162,7 +1156,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
 
         return score;
-
     }
 
     private int getSelectedRecordStart(final SAMRecord rec, Integer endUncertainty) {
