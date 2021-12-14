@@ -1179,8 +1179,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 hmersLeft--;
             }
 
-            int         hmerSize = 1;
-            for ( ; hmerSize < bases.length ; hmerSize++ ) {
+            int         hmerSize;
+            for ( hmerSize = 1; hmerSize < bases.length ; hmerSize++ ) {
                 if ((start ? bases[ofs + hmerSize] : bases[bases.length - 1 - hmerSize - ofs]) != hmerBase) {
                     if (--hmersLeft <= 0) {
                         break;
