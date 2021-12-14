@@ -111,6 +111,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "<hr />";
 
     static public final int     END_INSIGNIFICANT = 0;
+    public static final String ATTR_DUPLICATE_SCORE = "DuplicateScore";
 
     /**
      * Enum used to control how duplicates are flagged in the DT optional tag on each read.
@@ -930,7 +931,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
      * the 'DI' tag.
      */
     private void addRepresentativeReadIndex(final List<ReadEndsForMarkDuplicates> list) {
-        double maxScore = 0;
+        short maxScore = 0;
         ReadEndsForMarkDuplicates best = null;
 
         /** All read ends should have orientation FF, FR, RF, or RR **/
@@ -953,7 +954,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
      * not be marked as duplicates.  This assumes that the list contains objects representing pairs.
      */
     private void markDuplicatePairs(final List<ReadEndsForMarkDuplicates> list) {
-        double maxScore = 0;
+        short maxScore = 0;
         ReadEndsForMarkDuplicates best = null;
 
         /** All read ends should have orientation FF, FR, RF, or RR **/
@@ -1035,7 +1036,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 }
             }
         } else {
-            double maxScore = 0;
+            short maxScore = 0;
             ReadEndsForMarkDuplicates best = null;
             for (final ReadEndsForMarkDuplicates end : list) {
                 if (end.score > maxScore || best == null) {
@@ -1127,17 +1128,17 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
     }
 
-    private double computeFlowDuplicateScore(SAMRecord rec, int start, int end) {
+    private short computeFlowDuplicateScore(SAMRecord rec, int start, int end) {
 
-        Double storedScore = (Double)rec.getTransientAttribute("DuplicateScore");
+        Short storedScore = (Short)rec.getTransientAttribute(ATTR_DUPLICATE_SCORE);
         if ( storedScore == null ) {
-            double score = 0;
+            short score = 0;
 
             score += (short) Math.min(getFlowSumOfBaseQualities(rec, start, end), Short.MAX_VALUE / 2);
 
             score += rec.getReadFailsVendorQualityCheckFlag() ? (short) (Short.MIN_VALUE / 2) : 0;
             storedScore = score;
-            rec.setTransientAttribute("DuplicateScore", storedScore);
+            rec.setTransientAttribute(ATTR_DUPLICATE_SCORE, storedScore);
         }
 
         return storedScore;

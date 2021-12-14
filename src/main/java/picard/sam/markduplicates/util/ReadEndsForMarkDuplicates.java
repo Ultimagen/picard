@@ -47,7 +47,7 @@ public class ReadEndsForMarkDuplicates extends ReadEnds implements Cloneable {
         return SIZE_OF;
     }
 
-    public double score = 0;
+    public short score = 0;
     public long read1IndexInFile = -1;
     public long read2IndexInFile = -1;
     public int duplicateSetSize = -1;
@@ -80,7 +80,7 @@ public class ReadEndsForMarkDuplicates extends ReadEnds implements Cloneable {
 
     @Override
     public String toString() {
-        return String.format("%d %d-%d(%d) %f", read1IndexInFile, read1Coordinate, read1Coordinate2, read1Coordinate2Uncertainty, score);
+        return String.format("%d %d-%d(%d) %d", read1IndexInFile, read1Coordinate, read1Coordinate2, read1Coordinate2Uncertainty, score);
     }
 
     @Override
