@@ -32,6 +32,7 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.Histogram;
 import htsjdk.samtools.util.IOUtil;
 import htsjdk.samtools.util.QualityUtil;
+import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.barclay.argparser.Argument;
 import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
 import org.broadinstitute.barclay.help.DocumentedFeature;
@@ -194,7 +195,7 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
                 }
             }
             if (rec.getReadNegativeStrandFlag()) {
-                reverseArray(quals);
+                ArrayUtils.reverse(quals);
             }
             int count = 0 ;
             for(final int qual: quals ) {
@@ -244,15 +245,6 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             }
             return cur_result;
         }
-
-        private void reverseArray(final byte[] array) {
-            for (int i=0, j=array.length-1; i<j; ++i, --j) {
-                final byte tmp = array[i];
-                array[i] = array[j];
-                array[j] = tmp;
-            }
-        }
-
     }
 
     /**
