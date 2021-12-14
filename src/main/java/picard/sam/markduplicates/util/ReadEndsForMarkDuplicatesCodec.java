@@ -51,7 +51,7 @@ public class ReadEndsForMarkDuplicatesCodec implements SortingCollection.Codec<R
 
     public void encode(final ReadEndsForMarkDuplicates read) {
         try {
-            this.out.writeDouble(read.score);
+            this.out.writeShort(read.score);
             this.out.writeShort(read.libraryId);
             this.out.writeByte(read.orientation);
             this.out.writeInt(read.read1ReferenceIndex);
@@ -83,7 +83,7 @@ public class ReadEndsForMarkDuplicatesCodec implements SortingCollection.Codec<R
         try {
             // If the first read results in an EOF we've exhausted the stream
             try {
-                read.score = this.in.readDouble();
+                read.score = this.in.readShort();
             } catch (final EOFException eof) {
                 return null;
             }
