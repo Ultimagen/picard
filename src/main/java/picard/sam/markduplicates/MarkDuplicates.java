@@ -250,6 +250,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
     protected LibraryIdGenerator libraryIdGenerator = null; // this is initialized in buildSortedReadEndLists
 
+    // constants for tmTagContains
+    public static final char[]    TM_TAG_CONTAINS_A = {'A'};
+    public static final char[]    TM_TAG_CONTAINS_AQ = {'A', 'Q'};
+    public static final char[]    TM_TAG_CONTAINS_QZ = {'Q', 'Z'};
+
     private int getReadOneBarcodeValue(final SAMRecord record) {
         return EstimateLibraryComplexity.getReadBarcodeValue(record, READ_ONE_BARCODE_TAG);
     }
@@ -1205,9 +1210,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             return FLOW_USE_CLIPPED_LOCATIONS
                     ? (start ? Math.max(coor, alignmentCoor) : Math.min(coor, alignmentCoor))
                     : coor;
-        } else if ( tmTagContains(rec, 'A', FLOW_Q_IS_KNOWN_END ? 'Q' : '\0') ) {
+        } else if ( tmTagContains(rec, FLOW_Q_IS_KNOWN_END ? TM_TAG_CONTAINS_AQ : TM_TAG_CONTAINS_A) ) {
             return unclippedCoor;
-        } else if ( !certain && tmTagContains(rec, 'Q', 'Z') ) {
+        } else if ( !certain && tmTagContains(rec, TM_TAG_CONTAINS_QZ) ) {
             return END_INSIGNIFICANT;
         } else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
             return alignmentCoor;
@@ -1216,12 +1221,16 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
     }
 
-    public static boolean tmTagContains(final SAMRecord rec, final char ch1, final char ch2) {
+    public static boolean tmTagContains(final SAMRecord rec, final char[] chars) {
         final String        tm = rec.getStringAttribute("tm");
         if ( tm == null ) {
             return false;
         } else {
-            return tm.indexOf(ch1) >= 0 || (ch2 != '\0' && tm.indexOf(ch2) >= 0);
+            for ( char ch : chars ) {
+                if ( tm.indexOf(ch) >= 0 )
+                    return true;
+            }
+            return false;
         }
     }
 
