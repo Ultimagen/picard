@@ -1202,9 +1202,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             return FLOW_USE_CLIPPED_LOCATIONS
                     ? (start ? Math.max(coor, alignmentCoor) : Math.min(coor, alignmentCoor))
                     : coor;
-        } else if ( tmTagContains(rec, FLOW_Q_IS_KNOWN_END ? TM_TAG_CONTAINS_AQ : TM_TAG_CONTAINS_A) ) {
+        } else if ( FLOW_Q_IS_KNOWN_END ? isAdapterClipped(rec) : isAdapterClippedWithQ(rec) ) {
             return unclippedCoor;
-        } else if ( !certain && tmTagContains(rec, TM_TAG_CONTAINS_QZ) ) {
+        } else if ( !certain && isQualityClipped(rec) ) {
             return END_INSIGNIFICANT;
         } else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
             return alignmentCoor;
@@ -1213,7 +1213,19 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
     }
 
-    public static boolean tmTagContains(final SAMRecord rec, final char[] chars) {
+    public static boolean isAdapterClipped(final SAMRecord rec) {
+        return tmTagContains(rec, TM_TAG_CONTAINS_A);
+    }
+
+    public static boolean isAdapterClippedWithQ(final SAMRecord rec) {
+        return tmTagContains(rec, TM_TAG_CONTAINS_AQ);
+    }
+
+    public static boolean isQualityClipped(final SAMRecord rec) {
+        return tmTagContains(rec, TM_TAG_CONTAINS_QZ);
+    }
+
+    private static boolean tmTagContains(final SAMRecord rec, final char[] chars) {
         final String        tm = rec.getStringAttribute("tm");
         if ( tm == null ) {
             return false;
