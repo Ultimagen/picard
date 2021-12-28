@@ -72,8 +72,41 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.PF_Q30_BASES, 3145);
         Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 6497);
         Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 6497);
+        Assert.assertEquals(metrics.RLQ30, 0);
+        Assert.assertEquals(metrics.RLQ25, 0);
+    }
 
-                Assert.assertEquals(metrics.RLQ30, 27);
-                Assert.assertEquals(metrics.RLQ25, 30);
+    @Test
+    public void test_se() throws IOException {
+        final File input = new File(TEST_DATA_DIR, "subsample.bam");
+        final File outfile   = File.createTempFile("test", ".quality_yield_metrics");
+        outfile.deleteOnExit();
+        final String[] args = new String[] {
+                "INPUT="  + input.getAbsolutePath(),
+                "OUTPUT=" + outfile.getAbsolutePath(),
+                "USE_ORIGINAL_QUALITIES=false"
+        };
+
+        Assert.assertEquals(runPicardCommandLine(args), 0);
+
+        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, ?> output = new MetricsFile<>();
+        output.read(new FileReader(outfile));
+
+        Assert.assertEquals(output.getMetrics().size(),1);
+
+        final CollectQualityYieldMetrics.QualityYieldMetrics metrics = output.getMetrics().get(0);
+        Assert.assertEquals(metrics.TOTAL_READS, 56);
+        Assert.assertEquals(metrics.PF_READS, 56);
+        Assert.assertEquals(metrics.READ_LENGTH, 285);
+        Assert.assertEquals(metrics.TOTAL_BASES, 15983);
+        Assert.assertEquals(metrics.PF_BASES, 15983);
+        Assert.assertEquals(metrics.Q20_BASES, 15494);
+        Assert.assertEquals(metrics.PF_Q20_BASES, 15494);
+        Assert.assertEquals(metrics.Q30_BASES, 14786);
+        Assert.assertEquals(metrics.PF_Q30_BASES, 14786);
+        Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 30589);
+        Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 30589);
+        Assert.assertEquals(metrics.RLQ30, 0);
+        Assert.assertEquals(metrics.RLQ25, 290);
     }
 }
