@@ -223,20 +223,24 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "(and correct) quality value is used for all bases of the same homopolymer. Default false.")
     public boolean FLOW_QUALITY_SUM_STRATEGY = false;
 
-    @Argument(doc = "Make end location of read be significant when considering duplicates, " +
-            "in addition to the start location, which is always significant. Default false.")
-    public boolean FLOW_END_LOCATION_SIGNIFICANT = false;
+    @Argument(doc = "Make the end location of single end read be significant when considering duplicates, " +
+            "in addition to the start location, which is always significant (i.e. require single end reads to start and" +
+            "end on the same position to be considered duplicate). Default false.")
+    public boolean SINGLE_END_READS_END_POSITION_SIGNIFICANT = false;
 
-    @Argument(doc = "Maximal number of bases of reads ends difference that is marked as match. Default 0.")
-    public int ENDS_READ_UNCERTAINTY = 0;
+    @Argument(doc = "Use position of the clipping as the end position, when considering duplicates (or use the unclipped end position). Default false.")
+    public boolean SINGLE_END_READS_CLIPPING_IS_END = false;
 
-    @Argument(doc = "Use clipped, rather than unclipped, when considering duplicates. Default false.")
-    public boolean FLOW_USE_CLIPPED_LOCATIONS = false;
+    @Argument(doc = "Maximal difference of the read end position that counted as equal. Useful for flow based " +
+            "reads where the end position might vary due to sequencing errors. Default 0.")
+    public int FLOW_END_POS_UNCERTAINTY = 0;
 
-    @Argument(doc = "Skip first N flows, when considering duplicates. Default 0.")
+    @Argument(doc = "Skip first N flows, when considering duplicates. Useful for flow based reads where sometimes there " +
+            "is noise in the first flows. Default 0.")
     public int FLOW_SKIP_START_HOMOPOLYMERS = 0;
 
-    @Argument(doc = "Treat tm:Q as tm:A. Default false.")
+    @Argument(doc = "Treat position of read trimming based on quality as the known end (relevant for flow based reads). Default false - if the read " +
+            "is trimmed on quality its end is not defined and the read is duplicate with any read starting at the same place. ")
     public boolean FLOW_Q_IS_KNOWN_END = false;
 
     private SortingCollection<ReadEndsForMarkDuplicates> pairSort;
@@ -685,9 +689,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if (rec.getReadPairedFlag() && !rec.getMateUnmappedFlag()) {
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
-        else if ( FLOW_END_LOCATION_SIGNIFICANT ) {
+        else if (SINGLE_END_READS_END_POSITION_SIGNIFICANT) {
             ends.read1Coordinate2 = getReadEndCoordinate(rec, rec.getReadNegativeStrandFlag(), false);
-            ends.read1Coordinate2Uncertainty = ENDS_READ_UNCERTAINTY;
+            ends.read1Coordinate2Uncertainty = FLOW_END_POS_UNCERTAINTY;
         }
 
         if ( ends.score == 0 ) {
@@ -1199,14 +1203,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 }
             }
             final int     coor = unclippedCoor + (start ? hmerSize : -hmerSize);
-            return FLOW_USE_CLIPPED_LOCATIONS
+            return SINGLE_END_READS_CLIPPING_IS_END
                     ? (start ? Math.max(coor, alignmentCoor) : Math.min(coor, alignmentCoor))
                     : coor;
         } else if ( FLOW_Q_IS_KNOWN_END ? isAdapterClipped(rec) : isAdapterClippedWithQ(rec) ) {
             return unclippedCoor;
         } else if ( !certain && isQualityClipped(rec) ) {
             return END_INSIGNIFICANT;
-        } else if ( FLOW_USE_CLIPPED_LOCATIONS ) {
+        } else if (SINGLE_END_READS_CLIPPING_IS_END) {
             return alignmentCoor;
         } else {
             return unclippedCoor;
