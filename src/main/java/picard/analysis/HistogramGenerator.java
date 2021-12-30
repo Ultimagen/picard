@@ -85,14 +85,15 @@ public final class HistogramGenerator {
         return maxLengthSoFar == 0;
     }
 
-    public int calculateLQ(final int threshold, int read_in_pair){
-        double error_prob_threshold = QualityUtil.getErrorProbabilityFromPhredScore(threshold);
+    public int calculateLQ(final int threshold, int readInPair, int spanningWindowLength){
+        double errorProbThreshold = QualityUtil.getErrorProbabilityFromPhredScore(threshold);
         final int OFFSET = 10;
         int cur_result = 1 ;
         List<Double> result = new ArrayList<>();
+        List<Long> weights = new ArrayList<>();
         double[] accumulator;
         long[] counts;
-        if (read_in_pair == 1){
+        if (readInPair == 1){
             accumulator = firstReadTotalProbsByCycle;
             counts = firstReadCountsByCycle;
         } else {
@@ -104,16 +105,48 @@ public final class HistogramGenerator {
                 break;
             }
             result.add(accumulator[i]/counts[i]);
+            weights.add(counts[i]);
         }
-
-        double cumsum = 0;
-        for (int i = 0; i < result.size(); i++){
-            cumsum += result.get(i);
-            if (cumsum/(i+1) < error_prob_threshold) {
-                cur_result = i+1+OFFSET;
-            }
-        }
-        return cur_result-1;
+        applySpanningWindowMean(result, weights, spanningWindowLength);
+        return longestHighQuality(result,errorProbThreshold);
     }
 
+    private void applySpanningWindowMean(List<Double> vector, List<Long> weights, final int spanLength){
+        List<Double> tmp = new ArrayList<>(vector);
+        for (int i = 0; i < vector.size(); i++){
+            double tmpEr = 0;
+            long tmpWeight = 0;
+            for (int j = Math.max(i-spanLength,0); j < Math.min(i+spanLength+1, vector.size()); j++){
+                tmpEr += tmp.get(j)*weights.get(j);
+                tmpWeight += weights.get(j);
+            }
+            vector.set(i, tmpEr/tmpWeight);
+        }
+    }
+
+    private int longestHighQuality(List<Double> result, double errorProbThreshold){
+        int curBestStart = 0;
+        int curBestEnd = 0;
+        int curStart = 0;
+        int curEnd = 0;
+
+        while ( (curStart <result.size()) && (curEnd < result.size()) ){
+            if (result.get(curEnd) < errorProbThreshold){
+                curEnd++;
+            } else {
+                if ((curEnd - curStart) > (curBestEnd - curBestStart)){
+                    curBestStart = curStart;
+                    curBestEnd = curEnd;
+                }
+                curStart = curEnd+1;
+                curEnd = curStart;
+            }
+        }
+        if ((curEnd-curStart) > (curBestEnd-curBestStart)){
+            curBestStart = curStart;
+            curBestEnd = curEnd;
+        }
+        int lhq = curBestEnd - curBestStart;
+        return lhq;
+    }
 }
