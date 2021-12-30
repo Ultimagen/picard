@@ -218,9 +218,9 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
         } else if (rec.isSecondaryOrSupplementary()) {
             ++metrics.SECONDARY_OR_SUPPLEMENTARY_RDS;
         } else if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
-            ++metrics.UNPAIRED_READS_EXAMINED;
+            ++metrics.SINGLE_END_READS_EXAMINED;
             if ( isUnpairedReadKnownFragment(rec) )
-                ++metrics.UNPAIRED_READS_KNOWN_FRAGMENT_EXAMINED;
+                ++metrics.SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED;
         } else {
             ++metrics.READ_PAIRS_EXAMINED; // will need to be divided by 2 at the end
         }
@@ -232,12 +232,12 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
         if (!rec.isSecondaryOrSupplementary() && !rec.getReadUnmappedFlag()) {
             // Update the duplication metrics
             if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
-                ++metrics.UNPAIRED_READ_DUPLICATES;
+                ++metrics.SNGLE_END_READ_DUPLICATES;
 
                 if ( isUnpairedReadKnownFragment(rec) )
-                    ++metrics.UNPAIRED_READS_DUPLICATES_KNOWN_FRAGMENT;
+                    ++metrics.SINGLE_END_READS_DUPLICATES_KNOWN_FRAGMENT_LENGTH;
                 else
-                    ++metrics.UNPAIRED_READS_DUPLICATES_SINGLE_END;
+                    ++metrics.SINGLE_END_READS_DUPLICATES_UNKNOWN_FRAGMENT_LENGTH;
             } else {
                 ++metrics.READ_PAIR_DUPLICATES;// will need to be divided by 2 at the end
             }
