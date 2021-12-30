@@ -211,8 +211,8 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
 
             metrics.calculateDerivedFields();
             if (isSingleEnded) {
-                metrics.RLQ30 = histogramGenerator.calculateLQ(30, 1);
-                metrics.RLQ25 = histogramGenerator.calculateLQ(25, 1);
+                metrics.RLQ30 = histogramGenerator.calculateLQ(30, 1, 5);
+                metrics.RLQ25 = histogramGenerator.calculateLQ(25, 1, 5);
             }
 
         }
