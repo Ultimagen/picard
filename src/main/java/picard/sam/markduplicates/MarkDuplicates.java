@@ -219,6 +219,9 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "the BARCODE_TAG option be set to a non null value.  Default null.", optional = true)
     public String MOLECULAR_IDENTIFIER_TAG = null;
 
+    @Argument(doc = "Allow specific parameters (FLOW_*) useful only for flow based reads. Default false.")
+    public boolean FLOW_MODE = false;
+
     @Argument(doc = "Use specific quality summing strategy for flow based reads. The strategy ensures that the same " +
             "(and correct) quality value is used for all bases of the same homopolymer. Default false.")
     public boolean FLOW_QUALITY_SUM_STRATEGY = false;
@@ -277,6 +280,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         IOUtil.assertInputsAreValid(INPUT);
         IOUtil.assertFileIsWritable(OUTPUT);
         IOUtil.assertFileIsWritable(METRICS_FILE);
+        enforceFlowModeOnlyParameters();
 
         final boolean useBarcodes = (null != BARCODE_TAG || null != READ_ONE_BARCODE_TAG || null != READ_TWO_BARCODE_TAG);
 
@@ -284,7 +288,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         log.info("Reading input file and constructing read end information.");
         buildSortedReadEndLists(useBarcodes);
         reportMemoryStats("After buildSortedReadEndLists");
-        generateDuplicateIndexes(useBarcodes, this.REMOVE_SEQUENCING_DUPLICATES || this.TAGGING_POLICY != DuplicateTaggingPolicy.DontTag);
+        if ( !FLOW_MODE ) {
+            generateDuplicateIndexes(useBarcodes, this.REMOVE_SEQUENCING_DUPLICATES || this.TAGGING_POLICY != DuplicateTaggingPolicy.DontTag);
+        } else {
+            generateDuplicateIndexesWithEndSignificance(useBarcodes, this.REMOVE_SEQUENCING_DUPLICATES || this.TAGGING_POLICY != DuplicateTaggingPolicy.DontTag);
+        }
+
         reportMemoryStats("After generateDuplicateIndexes");
         log.info("Marking " + this.numDuplicateIndices + " records as duplicates.");
 
@@ -641,10 +650,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                                     pairedEnds.orientation == ReadEnds.R);
                         }
 
-                        if ( FLOW_QUALITY_SUM_STRATEGY )
+                        if ( FLOW_QUALITY_SUM_STRATEGY ) {
                             pairedEnds.score += computeFlowDuplicateScore(rec, pairedEnds.read1Coordinate, pairedEnds.read1Coordinate2);
-                        else
+                        } else {
                             pairedEnds.score += DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
+                        }
                         this.pairSort.add(pairedEnds);
                     }
                 }
@@ -683,6 +693,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
         // Doing this lets the ends object know that it's part of a pair
         if (rec.getReadPairedFlag() && !rec.getMateUnmappedFlag()) {
+            if ( FLOW_MODE )
+                throw new IllegalArgumentException("FLOW_MODE does not support paired reads");
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
         else if ( FLOW_END_LOCATION_SIGNIFICANT ) {
@@ -691,10 +703,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
 
         if ( ends.score == 0 ) {
-            if (FLOW_QUALITY_SUM_STRATEGY)
+            if (FLOW_QUALITY_SUM_STRATEGY) {
                 ends.score = computeFlowDuplicateScore(rec, ends.read1Coordinate, ends.read1Coordinate2);
-            else
+            } else {
                 ends.score = DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
+            }
         }
 
         // Fill in the library ID
@@ -765,31 +778,18 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
 
         ReadEndsForMarkDuplicates firstOfNextChunk = null;
-        int nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
-        int nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
         final List<ReadEndsForMarkDuplicates> nextChunk = new ArrayList<>(200);
 
         // First just do the pairs
         log.info("Traversing read pair information and detecting duplicates.");
         for (final ReadEndsForMarkDuplicates next : this.pairSort) {
-            if (firstOfNextChunk != null && areComparableForDuplicates(firstOfNextChunk, next, true, useBarcodes,
-                    nextChunkRead1Coordinate2Min, nextChunkRead1Coordinate2Max)) {
+            if (firstOfNextChunk != null && areComparableForDuplicates(firstOfNextChunk, next, true, useBarcodes)) {
                 nextChunk.add(next);
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT ) {
-                    nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
-                    nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
-                }
             } else {
                 handleChunk(nextChunk);
                 nextChunk.clear();
                 nextChunk.add(next);
                 firstOfNextChunk = next;
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT )
-                    nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
-                else {
-                    nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
-                    nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
-                }
             }
         }
         handleChunk(nextChunk);
@@ -803,22 +803,12 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         boolean containsFrags = false;
 
         firstOfNextChunk = null;
-        nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
-        nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
 
         for (final ReadEndsForMarkDuplicates next : this.fragSort) {
-            if (firstOfNextChunk != null && areComparableForDuplicates(firstOfNextChunk, next, false, useBarcodes,
-                    nextChunkRead1Coordinate2Min, nextChunkRead1Coordinate2Max)) {
+            if (firstOfNextChunk != null && areComparableForDuplicates(firstOfNextChunk, next, false, useBarcodes)) {
                 nextChunk.add(next);
                 containsPairs = containsPairs || next.isPaired();
                 containsFrags = containsFrags || !next.isPaired();
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT ) {
-                    nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
-                    nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
-
-                    if ( firstOfNextChunk.read1Coordinate2 == END_INSIGNIFICANT )
-                        firstOfNextChunk = next;
-                }
             } else {
                 if (nextChunk.size() > 1 && containsFrags) {
                     markDuplicateFragments(nextChunk, containsPairs);
@@ -826,12 +816,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 nextChunk.clear();
                 nextChunk.add(next);
                 firstOfNextChunk = next;
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT )
-                    nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
-                else {
-                    nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
-                    nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
-                }
                 containsPairs = next.isPaired();
                 containsFrags = !next.isPaired();
             }
@@ -861,8 +845,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
     }
 
-    private boolean areComparableForDuplicates(final ReadEndsForMarkDuplicates lhs, final ReadEndsForMarkDuplicates rhs, final boolean compareRead2, final boolean useBarcodes,
-                                               final int lhsRead1Coordinate2Min, final int lhsRead1Coordinate2Max) {
+    private boolean areComparableForDuplicates(final ReadEndsForMarkDuplicates lhs, final ReadEndsForMarkDuplicates rhs, final boolean compareRead2, final boolean useBarcodes) {
         boolean areComparable = lhs.libraryId == rhs.libraryId;
 
         if (useBarcodes && areComparable) { // areComparable is useful here to avoid the casts below
@@ -876,9 +859,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if (areComparable) {
             areComparable = lhs.read1ReferenceIndex == rhs.read1ReferenceIndex &&
                     lhs.read1Coordinate == rhs.read1Coordinate &&
-                    (!endCoorSignificant(lhs.read1Coordinate2, rhs.read1Coordinate2) ||
-                     endCoorInRangeWithUncertainty(lhsRead1Coordinate2Min, lhsRead1Coordinate2Max, rhs.read1Coordinate2,
-                                                Math.min(lhs.read1Coordinate2Uncertainty, rhs.read1Coordinate2Uncertainty))) &&
                     lhs.orientation == rhs.orientation;
         }
 
@@ -888,14 +868,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
 
         return areComparable;
-    }
-
-    private boolean endCoorSignificant(final int lhsCoor, final int rhsCoor) {
-        return lhsCoor != END_INSIGNIFICANT && rhsCoor != END_INSIGNIFICANT;
-    }
-
-    private boolean endCoorInRangeWithUncertainty(int lhsCoorMin, int lhsCoorMax, int rhsCoor, int uncertainty) {
-        return (rhsCoor >= (lhsCoorMin - uncertainty)) && (rhsCoor <= (lhsCoorMax + uncertainty));
     }
 
     private void addIndexAsDuplicate(final long bamIndex) {
@@ -1271,6 +1243,162 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
         private byte current() {
             return flowOrder[ofs];
+        }
+    }
+
+    /**
+     * This method is identical in function to generateDuplicateIndexes except that it accomodates for
+     * the possible significance of the end side of the reads (w/ or wo/ uncertainty). This is only
+     * applicable for flow mode invocation.
+     */
+    private void generateDuplicateIndexesWithEndSignificance(final boolean useBarcodes, final boolean indexOpticalDuplicates) {
+        final int entryOverhead;
+        if (TAG_DUPLICATE_SET_MEMBERS) {
+            // Memory requirements for RepresentativeReadIndexer:
+            // three int entries + overhead: (3 * 4) + 4 = 16 bytes
+            entryOverhead = 16;
+        } else {
+            entryOverhead = SortingLongCollection.SIZEOF;
+        }
+        // Keep this number from getting too large even if there is a huge heap.
+        int maxInMemory = (int) Math.min((Runtime.getRuntime().maxMemory() * 0.25) / entryOverhead, (double) (Integer.MAX_VALUE - 5));
+        // If we're also tracking optical duplicates, reduce maxInMemory, since we'll need two sorting collections
+        if (indexOpticalDuplicates) {
+            maxInMemory /= ((entryOverhead + SortingLongCollection.SIZEOF) / entryOverhead);
+            this.opticalDuplicateIndexes = new SortingLongCollection(maxInMemory, TMP_DIR.toArray(new File[TMP_DIR.size()]));
+        }
+        log.info("Will retain up to " + maxInMemory + " duplicate indices before spilling to disk.");
+        this.duplicateIndexes = new SortingLongCollection(maxInMemory, TMP_DIR.toArray(new File[TMP_DIR.size()]));
+        if (TAG_DUPLICATE_SET_MEMBERS) {
+            final RepresentativeReadIndexerCodec representativeIndexCodec = new RepresentativeReadIndexerCodec();
+            this.representativeReadIndicesForDuplicates = SortingCollection.newInstance(RepresentativeReadIndexer.class,
+                    representativeIndexCodec,
+                    Comparator.comparing(read -> read.readIndexInFile),
+                    maxInMemory,
+                    TMP_DIR);
+        }
+
+        ReadEndsForMarkDuplicates firstOfNextChunk = null;
+        int nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
+        int nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
+        final List<ReadEndsForMarkDuplicates> nextChunk = new ArrayList<>(200);
+
+        // First just do the pairs
+        log.info("Traversing read pair information and detecting duplicates.");
+        for (final ReadEndsForMarkDuplicates next : this.pairSort) {
+            if (firstOfNextChunk != null && areComparableForDuplicatesWithEndSignificance(firstOfNextChunk, next, true, useBarcodes,
+                    nextChunkRead1Coordinate2Min, nextChunkRead1Coordinate2Max)) {
+                nextChunk.add(next);
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT ) {
+                    nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
+                    nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
+                }
+            } else {
+                handleChunk(nextChunk);
+                nextChunk.clear();
+                nextChunk.add(next);
+                firstOfNextChunk = next;
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT )
+                    nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
+                else {
+                    nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
+                    nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
+                }
+            }
+        }
+        handleChunk(nextChunk);
+
+        this.pairSort.cleanup();
+        this.pairSort = null;
+
+        // Now deal with the fragments
+        log.info("Traversing fragment information and detecting duplicates.");
+        boolean containsPairs = false;
+        boolean containsFrags = false;
+
+        firstOfNextChunk = null;
+        nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
+        nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
+
+        for (final ReadEndsForMarkDuplicates next : this.fragSort) {
+            if (firstOfNextChunk != null && areComparableForDuplicatesWithEndSignificance(firstOfNextChunk, next, false, useBarcodes,
+                    nextChunkRead1Coordinate2Min, nextChunkRead1Coordinate2Max)) {
+                nextChunk.add(next);
+                containsPairs = containsPairs || next.isPaired();
+                containsFrags = containsFrags || !next.isPaired();
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT ) {
+                    nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
+                    nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
+
+                    if ( firstOfNextChunk.read1Coordinate2 == END_INSIGNIFICANT )
+                        firstOfNextChunk = next;
+                }
+            } else {
+                if (nextChunk.size() > 1 && containsFrags) {
+                    markDuplicateFragments(nextChunk, containsPairs);
+                }
+                nextChunk.clear();
+                nextChunk.add(next);
+                firstOfNextChunk = next;
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT )
+                    nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
+                else {
+                    nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
+                    nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
+                }
+                containsPairs = next.isPaired();
+                containsFrags = !next.isPaired();
+            }
+        }
+        markDuplicateFragments(nextChunk, containsPairs);
+        this.fragSort.cleanup();
+        this.fragSort = null;
+
+        log.info("Sorting list of duplicate records.");
+        this.duplicateIndexes.doneAddingStartIteration();
+        if (this.opticalDuplicateIndexes != null) {
+            this.opticalDuplicateIndexes.doneAddingStartIteration();
+        }
+        if (TAG_DUPLICATE_SET_MEMBERS) {
+            this.representativeReadIndicesForDuplicates.doneAdding();
+        }
+    }
+
+    /**
+     * This method is identical in function to areComparableForDuplicates except that it accomodates for
+     * the possible significance of the end side of the reads (w/ or wo/ uncertainty). This is only
+     * applicable for flow mode invocation.
+     */
+    private boolean areComparableForDuplicatesWithEndSignificance(final ReadEndsForMarkDuplicates lhs, final ReadEndsForMarkDuplicates rhs, final boolean compareRead2, final boolean useBarcodes,
+                                                                  final int lhsRead1Coordinate2Min, final int lhsRead1Coordinate2Max) {
+        boolean areComparable = areComparableForDuplicates(lhs, rhs, compareRead2, useBarcodes);
+
+        if (areComparable) {
+            areComparable = (!endCoorSignificant(lhs.read1Coordinate2, rhs.read1Coordinate2) ||
+                            endCoorInRangeWithUncertainty(lhsRead1Coordinate2Min, lhsRead1Coordinate2Max, rhs.read1Coordinate2,
+                                    Math.min(lhs.read1Coordinate2Uncertainty, rhs.read1Coordinate2Uncertainty)));
+        }
+
+        return areComparable;
+    }
+
+    private boolean endCoorSignificant(final int lhsCoor, final int rhsCoor) {
+        return lhsCoor != END_INSIGNIFICANT && rhsCoor != END_INSIGNIFICANT;
+    }
+
+    private boolean endCoorInRangeWithUncertainty(int lhsCoorMin, int lhsCoorMax, int rhsCoor, int uncertainty) {
+        return (rhsCoor >= (lhsCoorMin - uncertainty)) && (rhsCoor <= (lhsCoorMax + uncertainty));
+    }
+
+    private void enforceFlowModeOnlyParameters() {
+
+        // if flow mode not specified, make sure no other flow mode parameter is specified
+        if ( !FLOW_MODE ) {
+            if ( FLOW_QUALITY_SUM_STRATEGY || FLOW_END_LOCATION_SIGNIFICANT || FLOW_USE_CLIPPED_LOCATIONS
+                        || (FLOW_SKIP_START_HOMOPOLYMERS != 0) || FLOW_Q_IS_KNOWN_END
+                        || (ENDS_READ_UNCERTAINTY != 0) ) {
+                throw new IllegalArgumentException("FLOW parameters can only be specified in FLOW_MODE");
+            }
         }
     }
 }
