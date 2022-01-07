@@ -36,11 +36,11 @@ public class DuplicationMetricsTest {
     private DuplicationMetrics emptyMetrics() {
         final DuplicationMetrics metric       = new DuplicationMetrics();
         metric.LIBRARY                        = "LIBRARY";
-        metric.UNPAIRED_READS_EXAMINED        = 0;
+        metric.SINGLE_END_READS_EXAMINED = 0;
         metric.READ_PAIRS_EXAMINED            = 0;
         metric.SECONDARY_OR_SUPPLEMENTARY_RDS = 0;
         metric.UNMAPPED_READS                 = 0;
-        metric.UNPAIRED_READ_DUPLICATES       = 0;
+        metric.SNGLE_END_READ_DUPLICATES = 0;
         metric.READ_PAIR_DUPLICATES           = 0;
         metric.READ_PAIR_OPTICAL_DUPLICATES   = 0;
         metric.calculateDerivedFields();
@@ -50,11 +50,11 @@ public class DuplicationMetricsTest {
     private DuplicationMetrics nonEmptyMetrics(final int scale) {
         final DuplicationMetrics metric       = new DuplicationMetrics();
         metric.LIBRARY                        = "LIBRARY";
-        metric.UNPAIRED_READS_EXAMINED        = 1000 * scale;
+        metric.SINGLE_END_READS_EXAMINED = 1000 * scale;
         metric.READ_PAIRS_EXAMINED            = 1000 * scale;
         metric.SECONDARY_OR_SUPPLEMENTARY_RDS = scale;
         metric.UNMAPPED_READS                 = 10 * scale;
-        metric.UNPAIRED_READ_DUPLICATES       = 100 * scale;
+        metric.SNGLE_END_READ_DUPLICATES = 100 * scale;
         metric.READ_PAIR_DUPLICATES           = 110 * scale;
         metric.READ_PAIR_OPTICAL_DUPLICATES   = 10 * scale;
         metric.calculateDerivedFields();
@@ -72,11 +72,11 @@ public class DuplicationMetricsTest {
         left.calculateDerivedFields();
 
         Assert.assertEquals(left.LIBRARY,                        expected.LIBRARY);
-        Assert.assertEquals(left.UNPAIRED_READS_EXAMINED,        expected.UNPAIRED_READS_EXAMINED);
+        Assert.assertEquals(left.SINGLE_END_READS_EXAMINED,        expected.SINGLE_END_READS_EXAMINED);
         Assert.assertEquals(left.READ_PAIRS_EXAMINED,            expected.READ_PAIRS_EXAMINED);
         Assert.assertEquals(left.SECONDARY_OR_SUPPLEMENTARY_RDS, expected.SECONDARY_OR_SUPPLEMENTARY_RDS);
         Assert.assertEquals(left.UNMAPPED_READS,                 expected.UNMAPPED_READS);
-        Assert.assertEquals(left.UNPAIRED_READ_DUPLICATES,       expected.UNPAIRED_READ_DUPLICATES);
+        Assert.assertEquals(left.SNGLE_END_READ_DUPLICATES,       expected.SNGLE_END_READ_DUPLICATES);
         Assert.assertEquals(left.READ_PAIR_DUPLICATES,           expected.READ_PAIR_DUPLICATES);
         Assert.assertEquals(left.READ_PAIR_OPTICAL_DUPLICATES,   expected.READ_PAIR_OPTICAL_DUPLICATES);
         Assert.assertEquals(left.PERCENT_DUPLICATION,            expected.PERCENT_DUPLICATION);

@@ -136,8 +136,8 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         // of bases if there are supplemental alignments in the input file.
         public final boolean includeSupplementalAlignments;
 
-        private final List<Double> qualityAccumulator = new ArrayList<>();
-        private final List<Integer> qualityCount = new ArrayList<>();
+        private boolean isSingleEnded;
+        private final HistogramGenerator histogramGenerator;
 
         // The metrics to be accumulated
         private final QualityYieldMetrics metrics = new QualityYieldMetrics();
@@ -145,9 +145,11 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         public QualityYieldMetricsCollector(final boolean useOriginalQualities,
                                             final boolean includeSecondaryAlignments,
                                             final boolean includeSupplementalAlignments) {
+            this.histogramGenerator = new HistogramGenerator(useOriginalQualities);
             this.useOriginalQualities = useOriginalQualities;
             this.includeSecondaryAlignments = includeSecondaryAlignments;
             this.includeSupplementalAlignments = includeSupplementalAlignments;
+            this.isSingleEnded=true;
         }
 
         public void acceptRecord(final SAMRecord rec, final ReferenceSequence ref) {
@@ -197,17 +199,9 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             if (rec.getReadNegativeStrandFlag()) {
                 ArrayUtils.reverse(quals);
             }
-            int count = 0 ;
-            for(final int qual: quals ) {
-                Double prob = QualityUtil.getErrorProbabilityFromPhredScore(qual);
-                if (count < qualityAccumulator.size()){
-                    qualityAccumulator.set(count, qualityAccumulator.get(count) + prob);
-                    qualityCount.set(count, qualityCount.get(count)+1);
-                } else {
-                    qualityAccumulator.add(count, prob);
-                    qualityCount.add(count,1);
-                }
-                count ++;
+            histogramGenerator.addRecord(rec);
+            if (rec.getReadPairedFlag()){
+                isSingleEnded = false;
             }
         }
 
@@ -216,8 +210,10 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             metrics.PF_Q20_EQUIVALENT_YIELD = metrics.PF_Q20_EQUIVALENT_YIELD / 20;
 
             metrics.calculateDerivedFields();
-            metrics.RLQ30 = calculateLQ(30);
-            metrics.RLQ25 = calculateLQ(25);
+            if (isSingleEnded) {
+                metrics.RLQ30 = histogramGenerator.calculateLQ(30, 1, 5);
+                metrics.RLQ25 = histogramGenerator.calculateLQ(25, 1, 5);
+            }
 
         }
 
@@ -225,26 +221,6 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             metricsFile.addMetric(metrics);
         }
 
-        private int calculateLQ(final double threshold){
-            double error_prob_threshold = Math.pow(10, -(double)threshold/10);
-            final int OFFSET = 10;
-            int cur_result = 0 ;
-            List<Double> result = new ArrayList<>();
-            for (int i = OFFSET; i < qualityAccumulator.size(); i++ ){
-                if (qualityCount.get(i) < 50){
-                    break;
-                }
-                result.add(qualityAccumulator.get(i)/qualityCount.get(i));
-            }
-            double cumsum = 0;
-            for (int i = 0; i < result.size(); i++){
-                cumsum += result.get(i);
-                if (cumsum/(i+1) < error_prob_threshold) {
-                    cur_result = i+1+OFFSET;
-                }
-            }
-            return cur_result;
-        }
     }
 
     /**
@@ -265,7 +241,7 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         public long PF_READS = 0;
 
         /**
-         * The average read length of all the reads (will be fixed for a lane)
+         * The average read length of all the reads
          */
         @NoMergingIsDerived
         public int READ_LENGTH = 0;
@@ -325,11 +301,11 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             this.READ_LENGTH = this.TOTAL_READS == 0 ? 0 : (int) (this.TOTAL_BASES / this.TOTAL_READS);
         }
 
-        /** The average read length until the average base quality is above 30 */
+        /** The average read length until the average base quality is below 30 - only for single end reads */
         @NoMergingIsDerived
         public long RLQ30 = 0;
 
-        /** The average read length until the average base quality is below 25 */
+        /** The average read length until the average base quality is below 25 - only for single end reads */
         @NoMergingIsDerived
         public long RLQ25 = 0;
 
