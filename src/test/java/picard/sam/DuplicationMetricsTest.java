@@ -36,7 +36,7 @@ public class DuplicationMetricsTest {
     private DuplicationMetrics emptyMetrics() {
         final DuplicationMetrics metric       = new DuplicationMetrics();
         metric.LIBRARY                        = "LIBRARY";
-        metric.SINGLE_END_READS_EXAMINED = 0;
+        metric.UNPAIRED_READS_EXAMINED = 0;
         metric.READ_PAIRS_EXAMINED            = 0;
         metric.SECONDARY_OR_SUPPLEMENTARY_RDS = 0;
         metric.UNMAPPED_READS                 = 0;
@@ -50,7 +50,7 @@ public class DuplicationMetricsTest {
     private DuplicationMetrics nonEmptyMetrics(final int scale) {
         final DuplicationMetrics metric       = new DuplicationMetrics();
         metric.LIBRARY                        = "LIBRARY";
-        metric.SINGLE_END_READS_EXAMINED = 1000 * scale;
+        metric.UNPAIRED_READS_EXAMINED = 1000 * scale;
         metric.READ_PAIRS_EXAMINED            = 1000 * scale;
         metric.SECONDARY_OR_SUPPLEMENTARY_RDS = scale;
         metric.UNMAPPED_READS                 = 10 * scale;
@@ -72,7 +72,7 @@ public class DuplicationMetricsTest {
         left.calculateDerivedFields();
 
         Assert.assertEquals(left.LIBRARY,                        expected.LIBRARY);
-        Assert.assertEquals(left.SINGLE_END_READS_EXAMINED,        expected.SINGLE_END_READS_EXAMINED);
+        Assert.assertEquals(left.UNPAIRED_READS_EXAMINED,        expected.UNPAIRED_READS_EXAMINED);
         Assert.assertEquals(left.READ_PAIRS_EXAMINED,            expected.READ_PAIRS_EXAMINED);
         Assert.assertEquals(left.SECONDARY_OR_SUPPLEMENTARY_RDS, expected.SECONDARY_OR_SUPPLEMENTARY_RDS);
         Assert.assertEquals(left.UNMAPPED_READS,                 expected.UNMAPPED_READS);

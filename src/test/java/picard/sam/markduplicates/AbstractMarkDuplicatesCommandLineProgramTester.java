@@ -113,7 +113,7 @@ abstract public class AbstractMarkDuplicatesCommandLineProgramTester extends Sam
                     if (record.getReadUnmappedFlag()) {
                         ++expectedMetrics.UNMAPPED_READS;
                     } else if (!record.getReadPairedFlag() || record.getMateUnmappedFlag()) {
-                        ++expectedMetrics.SINGLE_END_READS_EXAMINED;
+                        ++expectedMetrics.UNPAIRED_READS_EXAMINED;
                         if (isDuplicate) {
                             ++expectedMetrics.SNGLE_END_READ_DUPLICATES;
                         }
@@ -183,7 +183,7 @@ abstract public class AbstractMarkDuplicatesCommandLineProgramTester extends Sam
             }
             Assert.assertEquals(metricsOutput.getMetrics().size(), 1);
             final DuplicationMetrics observedMetrics = metricsOutput.getMetrics().get(0);
-            Assert.assertEquals(observedMetrics.SINGLE_END_READS_EXAMINED, expectedMetrics.SINGLE_END_READS_EXAMINED, "UNPAIRED_READS_EXAMINED does not match expected");
+            Assert.assertEquals(observedMetrics.UNPAIRED_READS_EXAMINED, expectedMetrics.UNPAIRED_READS_EXAMINED, "UNPAIRED_READS_EXAMINED does not match expected");
             Assert.assertEquals(observedMetrics.READ_PAIRS_EXAMINED, expectedMetrics.READ_PAIRS_EXAMINED, "READ_PAIRS_EXAMINED does not match expected");
             Assert.assertEquals(observedMetrics.UNMAPPED_READS, expectedMetrics.UNMAPPED_READS, "UNMAPPED_READS does not match expected");
             Assert.assertEquals(observedMetrics.SNGLE_END_READ_DUPLICATES, expectedMetrics.SNGLE_END_READ_DUPLICATES, "UNPAIRED_READ_DUPLICATES does not match expected");
