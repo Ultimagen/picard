@@ -38,7 +38,7 @@ public class ReadEndsForMarkDuplicates extends ReadEnds implements Cloneable {
        - long: read1IndexInFile, read2IndexInFile
      */
     protected static final int SIZE_OF = (1 * 1) + (5 * 2) + (5 * 4) + (8 * 2) + 1
-            + (2 * 4) // read1Coordinate2, read2Coordinate2,
+            + 4 // read1Coordinate2
             + 4 // read1Coordinate2Uncertainty
             + 8 + // last 8 == reference overhead
             13; // This is determined experimentally with JProfiler
@@ -63,7 +63,6 @@ public class ReadEndsForMarkDuplicates extends ReadEnds implements Cloneable {
         this.read1Coordinate2Uncertainty = read.read1Coordinate2Uncertainty;
         this.read2ReferenceIndex = read.read2ReferenceIndex;
         this.read2Coordinate = read.read2Coordinate;
-        this.read2Coordinate2 = read.read2Coordinate2;
 
         this.readGroup = read.getReadGroup();
         this.tile = read.getTile();
