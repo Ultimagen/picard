@@ -229,10 +229,10 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     @Argument(doc = "Make the end location of single end read be significant when considering duplicates, " +
             "in addition to the start location, which is always significant (i.e. require single end reads to start and" +
             "end on the same position to be considered duplicate). Default false.")
-    public boolean SINGLE_END_READS_END_POSITION_SIGNIFICANT = false;
+    public boolean USE_END_IN_UNPAIRED_READS = false;
 
     @Argument(doc = "Use position of the clipping as the end position, when considering duplicates (or use the unclipped end position). Default false.")
-    public boolean SINGLE_END_READS_CLIPPING_IS_END = false;
+    public boolean USE_UNPAIRED_CLIPPED_END = false;
 
     @Argument(doc = "Maximal difference of the read end position that counted as equal. Useful for flow based " +
             "reads where the end position might vary due to sequencing errors. Default 0.")
@@ -701,7 +701,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 throw new IllegalArgumentException("FLOW_MODE does not support paired reads");
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
-        else if (SINGLE_END_READS_END_POSITION_SIGNIFICANT) {
+        else if (USE_END_IN_UNPAIRED_READS) {
             ends.read1Coordinate2 = getReadEndCoordinate(rec, rec.getReadNegativeStrandFlag(), false);
             ends.read1Coordinate2Uncertainty = FLOW_END_POS_UNCERTAINTY;
         }
@@ -1175,14 +1175,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                 }
             }
             final int     coor = unclippedCoor + (start ? hmerSize : -hmerSize);
-            return SINGLE_END_READS_CLIPPING_IS_END
+            return USE_UNPAIRED_CLIPPED_END
                     ? (start ? Math.max(coor, alignmentCoor) : Math.min(coor, alignmentCoor))
                     : coor;
         } else if ( FLOW_Q_IS_KNOWN_END ? isAdapterClipped(rec) : isAdapterClippedWithQ(rec) ) {
             return unclippedCoor;
         } else if ( !certain && isQualityClipped(rec) ) {
             return END_INSIGNIFICANT;
-        } else if (SINGLE_END_READS_CLIPPING_IS_END) {
+        } else if (USE_UNPAIRED_CLIPPED_END) {
             return alignmentCoor;
         } else {
             return unclippedCoor;
@@ -1398,7 +1398,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
         // if flow mode not specified, make sure no other flow mode parameter is specified
         if ( !FLOW_MODE ) {
-            if ( FLOW_QUALITY_SUM_STRATEGY || SINGLE_END_READS_END_POSITION_SIGNIFICANT || SINGLE_END_READS_CLIPPING_IS_END
+            if ( FLOW_QUALITY_SUM_STRATEGY || USE_END_IN_UNPAIRED_READS || USE_UNPAIRED_CLIPPED_END
                         || (FLOW_SKIP_START_HOMOPOLYMERS != 0) || FLOW_Q_IS_KNOWN_END
                         || (FLOW_END_POS_UNCERTAINTY != 0) ) {
                 throw new IllegalArgumentException("FLOW parameters can only be specified in FLOW_MODE");
