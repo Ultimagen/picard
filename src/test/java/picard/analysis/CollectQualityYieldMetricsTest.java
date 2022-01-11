@@ -148,5 +148,51 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_25, 0);
     }
 
+    @Test
+    public void test_merge() {
+        CollectQualityYieldMetrics.QualityYieldMetrics      m1 = createTestQualityYieldMetrics();
+        CollectQualityYieldMetrics.QualityYieldMetrics      m2 = createTestQualityYieldMetrics();
+
+        // create test data for averaging fields
+        m2.AVG_READ_LENGTH_Q_BELOW_30 *= 3;
+        m2.AVG_READ_LENGTH_Q_BELOW_25 *= 3;
+
+        m1.merge(m2);
+
+        Assert.assertEquals(m1.TOTAL_READS, m2.TOTAL_READS * 2);
+        Assert.assertEquals(m1.PF_READS, m2.PF_READS * 2);
+        Assert.assertEquals(m1.READ_LENGTH, m2.READ_LENGTH);
+        Assert.assertEquals(m1.PF_BASES, m2.PF_BASES * 2);
+        Assert.assertEquals(m1.Q20_BASES, m2.Q20_BASES * 2);
+        Assert.assertEquals(m1.PF_Q20_BASES, m2.PF_Q20_BASES * 2);
+        Assert.assertEquals(m1.Q30_BASES, m2.Q30_BASES * 2);
+        Assert.assertEquals(m1.PF_Q30_BASES, m2.PF_Q30_BASES * 2);
+        Assert.assertEquals(m1.Q20_EQUIVALENT_YIELD, m2.Q20_EQUIVALENT_YIELD * 2);
+        Assert.assertEquals(m1.AVG_READ_LENGTH_Q_BELOW_30, m2.AVG_READ_LENGTH_Q_BELOW_30 * 2 / 3);
+        Assert.assertEquals(m1.AVG_READ_LENGTH_Q_BELOW_25, m2.AVG_READ_LENGTH_Q_BELOW_25 * 2 / 3);
+    }
+
+    private CollectQualityYieldMetrics.QualityYieldMetrics createTestQualityYieldMetrics() {
+
+        CollectQualityYieldMetrics.QualityYieldMetrics      m = new CollectQualityYieldMetrics.QualityYieldMetrics();
+
+        m.TOTAL_READS = 52;
+        m.PF_READS = 52;
+        m.READ_LENGTH = 101;
+        m.TOTAL_BASES = 5252;
+        m.PF_BASES = 5252;
+        m.Q20_BASES = 3532;
+        m.PF_Q20_BASES = 3532;
+        m.Q30_BASES = 3145;
+        m.PF_Q30_BASES = 3145;
+        m.Q20_EQUIVALENT_YIELD = 6497;
+        m.PF_Q20_EQUIVALENT_YIELD = 6497;
+        m.AVG_READ_LENGTH_Q_BELOW_30 = 100;
+        m.AVG_READ_LENGTH_Q_BELOW_25 = 200;
+
+        return m;
+
+    }
+
 
 }

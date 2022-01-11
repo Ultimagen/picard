@@ -304,6 +304,34 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         @NoMergingIsDerived
         public long AVG_READ_LENGTH_Q_BELOW_25 = 0;
 
+        @Override
+        public MergeableMetricBase merge(final MergeableMetricBase other) {
+            long                        totalReadsbeforeMerge = TOTAL_READS;
+            MergeableMetricBase         m = super.merge(other);
+
+            // merge average fields
+            if ( (m instanceof QualityYieldMetrics) && (other instanceof QualityYieldMetrics) ) {
+
+                QualityYieldMetrics     o = (QualityYieldMetrics)other;
+
+                // worth doing only if there are reads on the other matrix
+                if ( o.TOTAL_READS != 0 ) {
+                    QualityYieldMetrics     dst = (QualityYieldMetrics)m;
+
+                    dst.AVG_READ_LENGTH_Q_BELOW_30 =
+                            ((AVG_READ_LENGTH_Q_BELOW_30 * totalReadsbeforeMerge)
+                                    + (o.AVG_READ_LENGTH_Q_BELOW_30 * o.TOTAL_READS))
+                                    / (totalReadsbeforeMerge + o.TOTAL_READS);
+                    dst.AVG_READ_LENGTH_Q_BELOW_25 =
+                            ((AVG_READ_LENGTH_Q_BELOW_25 * totalReadsbeforeMerge)
+                                    + (o.AVG_READ_LENGTH_Q_BELOW_25 * o.TOTAL_READS))
+                                    / (totalReadsbeforeMerge + o.TOTAL_READS);
+                }
+            }
+
+            return m;
+        }
+
     }
 
 }
