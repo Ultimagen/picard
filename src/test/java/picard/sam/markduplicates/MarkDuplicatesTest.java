@@ -451,7 +451,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
     }
 
     @Test
-    public void testFLOW_SKIP_START_HOMOPOLYMERS() {
+    public void testFLOW_SKIP_FIRST_N_FLOWS() {
         AbstractMarkDuplicatesCommandLineProgramTester tester;
         SAMRecord[]     records;
 
@@ -467,7 +467,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         System.arraycopy("TGGCA".getBytes(), 0, records[1].getReadBases(), records[1].getReadBases().length - 5, 4);
         tester.addArg("FLOW_MODE=true");
         tester.addArg("USE_END_IN_UNPAIRED_READS=true");
-        tester.addArg("FLOW_SKIP_START_HOMOPOLYMERS=0");
+        tester.addArg("FLOW_SKIP_FIRST_N_FLOWS=0");
         tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
 
@@ -483,7 +483,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
         System.arraycopy("TGGCA".getBytes(), 0, records[1].getReadBases(), records[1].getReadBases().length - 5, 4);
         tester.addArg("FLOW_MODE=true");
         tester.addArg("USE_END_IN_UNPAIRED_READS=true");
-        tester.addArg("FLOW_SKIP_START_HOMOPOLYMERS=3");
+        tester.addArg("FLOW_SKIP_FIRST_N_FLOWS=3");
         tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
         tester.runTest();
     }
