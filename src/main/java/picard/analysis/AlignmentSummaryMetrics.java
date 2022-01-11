@@ -136,7 +136,7 @@ public class AlignmentSummaryMetrics extends MultilevelMetrics {
     /**
      * The median read length of the set of reads examined.  When looking at the data for a single lane with
      * equal length reads this number is just the read length.  When looking at data for merged lanes with
-     * differing read lengths this is the median read length of all reads. Computed using all read lengths
+     * differing read lengths this is the median read length of all reads. Computed using all bases in reads,
      * including clipped bases.
      */
     public double MEDIAN_READ_LENGTH;

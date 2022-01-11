@@ -26,12 +26,9 @@ package picard.analysis;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.metrics.MetricBase;
 import htsjdk.samtools.metrics.MetricsFile;
 import htsjdk.samtools.reference.ReferenceSequence;
-import htsjdk.samtools.util.Histogram;
 import htsjdk.samtools.util.IOUtil;
-import htsjdk.samtools.util.QualityUtil;
 import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.barclay.argparser.Argument;
 import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
@@ -40,8 +37,6 @@ import picard.cmdline.StandardOptionDefinitions;
 import picard.cmdline.programgroups.DiagnosticsAndQCProgramGroup;
 
 import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Command line program to calculate quality yield metrics
@@ -211,8 +206,8 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
 
             metrics.calculateDerivedFields();
             if (isSingleEnded) {
-                metrics.RLQ30 = histogramGenerator.calculateLQ(30, 1, 5);
-                metrics.RLQ25 = histogramGenerator.calculateLQ(25, 1, 5);
+                metrics.AVG_READ_LENGTH_Q_BELOW_30 = histogramGenerator.calculateLQ(30, 1, 5);
+                metrics.AVG_READ_LENGTH_Q_BELOW_25 = histogramGenerator.calculateLQ(25, 1, 5);
             }
 
         }
@@ -303,11 +298,11 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
 
         /** The average read length until the average base quality is below 30 - only for single end reads */
         @NoMergingIsDerived
-        public long RLQ30 = 0;
+        public long AVG_READ_LENGTH_Q_BELOW_30 = 0;
 
         /** The average read length until the average base quality is below 25 - only for single end reads */
         @NoMergingIsDerived
-        public long RLQ25 = 0;
+        public long AVG_READ_LENGTH_Q_BELOW_25 = 0;
 
     }
 

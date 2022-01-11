@@ -493,6 +493,5 @@ public class AlignmentSummaryMetricsCollector extends SAMRecordAndReferenceMulti
         public Histogram<Integer> getAlignedReadHistogram() {
             return alignedReadLengthHistogram;
         }
-
     }
 }
