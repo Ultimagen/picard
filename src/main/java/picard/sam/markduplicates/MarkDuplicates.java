@@ -696,7 +696,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         // Doing this lets the ends object know that it's part of a pair
         if (rec.getReadPairedFlag() && !rec.getMateUnmappedFlag()) {
             if ( FLOW_MODE )
-                throw new IllegalArgumentException("FLOW_MODE does not support paired reads");
+                throw new IllegalArgumentException("FLOW_MODE does not support paired reads. offending read: " + rec);
             ends.read2ReferenceIndex = rec.getMateReferenceIndex();
         }
         else if (USE_END_IN_UNPAIRED_READS) {
