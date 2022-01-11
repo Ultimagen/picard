@@ -43,7 +43,7 @@ public class DuplicationMetrics extends MergeableMetricBase {
      * either because the read is unpaired, or the read is paired to an unmapped mate.
      */
     @MergeByAdding
-    public long SINGLE_END_READS_EXAMINED;
+    public long UNPAIRED_READS_EXAMINED;
 
     /**
      * The number of mapped read pairs examined. (Primary, non-supplemental)
@@ -136,14 +136,14 @@ public class DuplicationMetrics extends MergeableMetricBase {
         this.ESTIMATED_LIBRARY_SIZE = estimateLibrarySize(this.READ_PAIRS_EXAMINED - this.READ_PAIR_OPTICAL_DUPLICATES,
                 this.READ_PAIRS_EXAMINED - this.READ_PAIR_DUPLICATES);
 
-        if (SINGLE_END_READS_EXAMINED + READ_PAIRS_EXAMINED != 0) {
-            PERCENT_DUPLICATION = (SNGLE_END_READ_DUPLICATES + READ_PAIR_DUPLICATES * 2) / (double) (SINGLE_END_READS_EXAMINED + READ_PAIRS_EXAMINED * 2);
+        if (UNPAIRED_READS_EXAMINED + READ_PAIRS_EXAMINED != 0) {
+            PERCENT_DUPLICATION = (SNGLE_END_READ_DUPLICATES + READ_PAIR_DUPLICATES * 2) / (double) (UNPAIRED_READS_EXAMINED + READ_PAIRS_EXAMINED * 2);
         } else {
             PERCENT_DUPLICATION = (double) 0;
         }
 
-        if ( (SINGLE_END_READS_EXAMINED - SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED)  != 0 ) {
-            PERCENT_DUPLICATION_UNKNOWN_FRAGMENT_LENGTH = SINGLE_END_READS_DUPLICATES_UNKNOWN_FRAGMENT_LENGTH / (double)(SINGLE_END_READS_EXAMINED - SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED);
+        if ( (UNPAIRED_READS_EXAMINED - SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED)  != 0 ) {
+            PERCENT_DUPLICATION_UNKNOWN_FRAGMENT_LENGTH = SINGLE_END_READS_DUPLICATES_UNKNOWN_FRAGMENT_LENGTH / (double)(UNPAIRED_READS_EXAMINED - SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED);
         } else {
             PERCENT_DUPLICATION_UNKNOWN_FRAGMENT_LENGTH = (double) 0;
         }

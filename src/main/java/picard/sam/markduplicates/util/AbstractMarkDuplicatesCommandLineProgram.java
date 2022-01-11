@@ -218,7 +218,7 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
         } else if (rec.isSecondaryOrSupplementary()) {
             ++metrics.SECONDARY_OR_SUPPLEMENTARY_RDS;
         } else if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
-            ++metrics.SINGLE_END_READS_EXAMINED;
+            ++metrics.UNPAIRED_READS_EXAMINED;
             if ( isUnpairedReadKnownFragment(rec) )
                 ++metrics.SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED;
         } else {

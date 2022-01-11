@@ -108,7 +108,7 @@ public class MarkDuplicatesTagRepresentativeReadIndexTester extends AbstractMark
             // expect getMetrics to return a collection with a single duplicateMetrics object
             Assert.assertEquals(metricsOutput.getMetrics().size(), 1);
             final DuplicationMetrics observedMetrics = metricsOutput.getMetrics().get(0);
-            Assert.assertEquals(observedMetrics.SINGLE_END_READS_EXAMINED, expectedMetrics.SINGLE_END_READS_EXAMINED, "UNPAIRED_READS_EXAMINED does not match expected");
+            Assert.assertEquals(observedMetrics.UNPAIRED_READS_EXAMINED, expectedMetrics.UNPAIRED_READS_EXAMINED, "UNPAIRED_READS_EXAMINED does not match expected");
             Assert.assertEquals(observedMetrics.READ_PAIRS_EXAMINED, expectedMetrics.READ_PAIRS_EXAMINED, "READ_PAIRS_EXAMINED does not match expected");
             Assert.assertEquals(observedMetrics.UNMAPPED_READS, expectedMetrics.UNMAPPED_READS, "UNMAPPED_READS does not match expected");
             Assert.assertEquals(observedMetrics.SNGLE_END_READ_DUPLICATES, expectedMetrics.SNGLE_END_READ_DUPLICATES, "UNPAIRED_READ_DUPLICATES does not match expected");
