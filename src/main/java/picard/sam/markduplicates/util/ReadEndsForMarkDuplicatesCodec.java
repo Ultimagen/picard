@@ -63,7 +63,6 @@ public class ReadEndsForMarkDuplicatesCodec implements SortingCollection.Codec<R
 
             if (read.orientation > ReadEnds.R) {
                 this.out.writeInt(read.read2Coordinate);
-                this.out.writeInt(read.read2Coordinate2);
                 this.out.writeLong(read.read2IndexInFile);
             }
 
@@ -99,7 +98,6 @@ public class ReadEndsForMarkDuplicatesCodec implements SortingCollection.Codec<R
 
             if (read.orientation > ReadEnds.R) {
                 read.read2Coordinate = this.in.readInt();
-                read.read2Coordinate2 = this.in.readInt();
                 read.read2IndexInFile = this.in.readLong();
             }
 

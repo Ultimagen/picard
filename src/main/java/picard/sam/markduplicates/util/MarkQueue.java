@@ -60,7 +60,6 @@ public class MarkQueue {
             if (retval == 0) retval = rhs.orientation - lhs.orientation; // to get pairs first, based on the order defined in ReadEnds
             if (retval == 0) retval = lhs.read2ReferenceIndex - rhs.read2ReferenceIndex;
             if (retval == 0) retval = lhs.read2Coordinate - rhs.read2Coordinate;
-            if (retval == 0) retval = lhs.read2Coordinate2 - rhs.read2Coordinate2;
             return retval;
         }
     }
@@ -86,7 +85,6 @@ public class MarkQueue {
             if (retval == 0) retval = lhs.hasUnmapped - rhs.hasUnmapped;
             if (retval == 0) retval = lhs.read2ReferenceIndex - rhs.read2ReferenceIndex;
             if (retval == 0) retval = lhs.read2Coordinate - rhs.read2Coordinate;
-            if (retval == 0) retval = lhs.read2Coordinate2 - rhs.read2Coordinate2;
             // TODO: cache the scores?
             if (retval == 0)
                 retval = DuplicateScoringStrategy.compare(lhs.getRecord(), rhs.getRecord(), this.duplicateScoringStrategy, true);

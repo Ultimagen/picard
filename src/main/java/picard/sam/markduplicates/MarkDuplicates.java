@@ -627,7 +627,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                                 (matesRefIndex == pairedEnds.read1ReferenceIndex && matesCoordinate >= pairedEnds.read1Coordinate)) {
                             pairedEnds.read2ReferenceIndex = matesRefIndex;
                             pairedEnds.read2Coordinate = matesCoordinate;
-                            pairedEnds.read2Coordinate2 = matesCoordinate2;
                             pairedEnds.read2IndexInFile = indexForRead;
                             pairedEnds.orientation = ReadEnds.getOrientationByte(pairedEnds.orientation == ReadEnds.R,
                                     rec.getReadNegativeStrandFlag());
@@ -644,7 +643,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                         } else {
                             pairedEnds.read2ReferenceIndex = pairedEnds.read1ReferenceIndex;
                             pairedEnds.read2Coordinate = pairedEnds.read1Coordinate;
-                            pairedEnds.read2Coordinate2 = pairedEnds.read1Coordinate2;
                             pairedEnds.read2IndexInFile = pairedEnds.read1IndexInFile;
                             pairedEnds.read1ReferenceIndex = matesRefIndex;
                             pairedEnds.read1Coordinate = matesCoordinate;
@@ -1059,9 +1057,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.read2Coordinate - rhs.read2Coordinate;
-            }
-            if (compareDifference == 0) {
-                compareDifference = lhs.read2Coordinate2 - rhs.read2Coordinate2;
             }
 
             if (compareDifference == 0) {
