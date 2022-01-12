@@ -380,7 +380,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
     }
 
     @Test
-    public void testFLOW_END_LOCATION_SIGNIFICANT() {
+    public void testUSE_END_IN_UNPAIRED_READS() {
         AbstractMarkDuplicatesCommandLineProgramTester tester;
 
         // End location is not significant
@@ -406,7 +406,7 @@ public class MarkDuplicatesTest extends AbstractMarkDuplicatesCommandLineProgram
     }
 
     @Test
-    public void testFLOW_USE_CLIPPED_LOCATIONS() {
+    public void testUSE_UNPAIRED_CLIPPED_END() {
         AbstractMarkDuplicatesCommandLineProgramTester tester;
 
         // Do not use clipped locations (meaning, use unclipped)
