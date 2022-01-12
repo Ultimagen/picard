@@ -306,17 +306,17 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
 
         @Override
         public MergeableMetricBase merge(final MergeableMetricBase other) {
-            long                        totalReadsbeforeMerge = TOTAL_READS;
-            MergeableMetricBase         m = super.merge(other);
+            final long                        totalReadsbeforeMerge = TOTAL_READS;
+            final MergeableMetricBase         m = super.merge(other);
 
             // merge average fields
             if ( (m instanceof QualityYieldMetrics) && (other instanceof QualityYieldMetrics) ) {
 
-                QualityYieldMetrics     o = (QualityYieldMetrics)other;
+                final QualityYieldMetrics     o = (QualityYieldMetrics)other;
 
                 // worth doing only if there are reads on the other matrix
                 if ( o.TOTAL_READS != 0 ) {
-                    QualityYieldMetrics     dst = (QualityYieldMetrics)m;
+                    final QualityYieldMetrics     dst = (QualityYieldMetrics)m;
 
                     dst.AVG_READ_LENGTH_Q_BELOW_30 =
                             ((AVG_READ_LENGTH_Q_BELOW_30 * totalReadsbeforeMerge)
