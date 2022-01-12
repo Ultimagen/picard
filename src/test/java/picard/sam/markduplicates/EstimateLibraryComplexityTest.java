@@ -88,7 +88,7 @@ public class EstimateLibraryComplexityTest extends CommandLineProgramTest {
         final List<DuplicationMetrics> metricsList = MetricsFile.readBeans(output);
         Assert.assertEquals(metricsList.size(), 1);
         final DuplicationMetrics metrics = metricsList.get(0);
-        Assert.assertEquals(metrics.READ_PAIR_DUPLICATES * 2 + metrics.SINGLE_END_READ_DUPLICATES, numDuplicates);
+        Assert.assertEquals(metrics.READ_PAIR_DUPLICATES * 2 + metrics.UNPAIRED_READ_DUPLICATES, numDuplicates);
         Assert.assertEquals(metrics.READ_PAIRS_EXAMINED, numReadPairsExamined);
     }
 

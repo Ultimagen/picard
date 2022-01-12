@@ -111,6 +111,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
     public static  final int   END_INSIGNIFICANT = 0;
     public static final String ATTR_DUPLICATE_SCORE = "DuplicateScore";
+    public static final int FLOW_EFFECTIVE_QUALITY_THRESHOLD = 15;
 
     /**
      * Enum used to control how duplicates are flagged in the DT optional tag on each read.
@@ -1121,10 +1122,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         byte        lastBase = 0;
         byte        effectiveQual = 0;
         for ( int i = startingOffset ; i != endOffset ; i += iterIncr ) {
-            byte        base = bases[i];
-            if ( base != lastBase )
+            final byte        base = bases[i];
+            if ( base != lastBase ) {
                 effectiveQual = quals[i];
-            if ( effectiveQual >= 15 ) {
+            }
+            if ( effectiveQual >= FLOW_EFFECTIVE_QUALITY_THRESHOLD) {
                 score += effectiveQual;
             }
             lastBase = base;
@@ -1202,7 +1204,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         if ( tm == null ) {
             return false;
         } else {
-            for ( char ch : chars ) {
+            for ( final char ch : chars ) {
                 if ( tm.indexOf(ch) >= 0 ) {
                     return true;
                 }
@@ -1216,14 +1218,14 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
      */
     static private class FlowOrder {
 
-        final byte[]    flowOrder;
-        int             ofs = 0;
+        final byte[] flowOrder; // the flow order byte string
+        int flowIndex = 0; // the current position on the flow order
 
         private FlowOrder(final SAMRecord rec) {
 
             // find flow order
-            SAMFileHeader       header = rec.getHeader();
-            for ( SAMReadGroupRecord rg : header.getReadGroups() ) {
+            final SAMFileHeader header = rec.getHeader();
+            for ( final SAMReadGroupRecord rg : header.getReadGroups() ) {
                 if (rg.getFlowOrder() != null) {
                     flowOrder = rg.getFlowOrder().getBytes();
                     return;
@@ -1237,13 +1239,13 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
         }
 
         private void advance() {
-            if (++ofs >= flowOrder.length) {
-                ofs = 0;
+            if (++flowIndex >= flowOrder.length) {
+                flowIndex = 0;
             }
         }
 
         private byte current() {
-            return flowOrder[ofs];
+            return flowOrder[flowIndex];
         }
     }
 
