@@ -159,7 +159,7 @@ public class SimpleMarkDuplicatesWithMateCigar extends MarkDuplicates {
                     if (record.getDuplicateReadFlag()) {
                         // Update the duplication metrics
                         if (!record.getReadPairedFlag() || record.getMateUnmappedFlag()) {
-                            ++metrics.SNGLE_END_READ_DUPLICATES;
+                            ++metrics.SINGLE_END_READ_DUPLICATES;
                         } else {
                             ++metrics.READ_PAIR_DUPLICATES;// will need to be divided by 2 at the end
                         }
