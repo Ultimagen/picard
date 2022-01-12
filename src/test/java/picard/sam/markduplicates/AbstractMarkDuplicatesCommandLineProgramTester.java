@@ -115,7 +115,7 @@ abstract public class AbstractMarkDuplicatesCommandLineProgramTester extends Sam
                     } else if (!record.getReadPairedFlag() || record.getMateUnmappedFlag()) {
                         ++expectedMetrics.UNPAIRED_READS_EXAMINED;
                         if (isDuplicate) {
-                            ++expectedMetrics.SINGLE_END_READ_DUPLICATES;
+                            ++expectedMetrics.UNPAIRED_READ_DUPLICATES;
                         }
                     } else {
                         ++expectedMetrics.READ_PAIRS_EXAMINED; // will need to be divided by 2 at the end
@@ -186,7 +186,7 @@ abstract public class AbstractMarkDuplicatesCommandLineProgramTester extends Sam
             Assert.assertEquals(observedMetrics.UNPAIRED_READS_EXAMINED, expectedMetrics.UNPAIRED_READS_EXAMINED, "UNPAIRED_READS_EXAMINED does not match expected");
             Assert.assertEquals(observedMetrics.READ_PAIRS_EXAMINED, expectedMetrics.READ_PAIRS_EXAMINED, "READ_PAIRS_EXAMINED does not match expected");
             Assert.assertEquals(observedMetrics.UNMAPPED_READS, expectedMetrics.UNMAPPED_READS, "UNMAPPED_READS does not match expected");
-            Assert.assertEquals(observedMetrics.SINGLE_END_READ_DUPLICATES, expectedMetrics.SINGLE_END_READ_DUPLICATES, "UNPAIRED_READ_DUPLICATES does not match expected");
+            Assert.assertEquals(observedMetrics.UNPAIRED_READ_DUPLICATES, expectedMetrics.UNPAIRED_READ_DUPLICATES, "UNPAIRED_READ_DUPLICATES does not match expected");
             Assert.assertEquals(observedMetrics.READ_PAIR_DUPLICATES, expectedMetrics.READ_PAIR_DUPLICATES, "READ_PAIR_DUPLICATES does not match expected");
             Assert.assertEquals(observedMetrics.READ_PAIR_OPTICAL_DUPLICATES, expectedMetrics.READ_PAIR_OPTICAL_DUPLICATES, "READ_PAIR_OPTICAL_DUPLICATES does not match expected");
             Assert.assertEquals(observedMetrics.PERCENT_DUPLICATION, expectedMetrics.PERCENT_DUPLICATION, "PERCENT_DUPLICATION does not match expected");

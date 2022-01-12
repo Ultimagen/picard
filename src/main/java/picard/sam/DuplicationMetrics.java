@@ -67,7 +67,7 @@ public class DuplicationMetrics extends MergeableMetricBase {
      * The number of single end reads that were marked as duplicates.
      */
     @MergeByAdding
-    public long SINGLE_END_READ_DUPLICATES;
+    public long UNPAIRED_READ_DUPLICATES;
 
     /**
      * The number of read pairs that were marked as duplicates.
@@ -137,7 +137,7 @@ public class DuplicationMetrics extends MergeableMetricBase {
                 this.READ_PAIRS_EXAMINED - this.READ_PAIR_DUPLICATES);
 
         if (UNPAIRED_READS_EXAMINED + READ_PAIRS_EXAMINED != 0) {
-            PERCENT_DUPLICATION = (SINGLE_END_READ_DUPLICATES + READ_PAIR_DUPLICATES * 2) / (double) (UNPAIRED_READS_EXAMINED + READ_PAIRS_EXAMINED * 2);
+            PERCENT_DUPLICATION = (UNPAIRED_READ_DUPLICATES + READ_PAIR_DUPLICATES * 2) / (double) (UNPAIRED_READS_EXAMINED + READ_PAIRS_EXAMINED * 2);
         } else {
             PERCENT_DUPLICATION = (double) 0;
         }

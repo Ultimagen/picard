@@ -174,7 +174,7 @@ public class MarkQueue {
     private void updateDuplicationMetrics(final ReadEndsForMateCigar duplicate, final DuplicationMetrics metrics) {
         // Update the duplication metrics
         if (!duplicate.getRecord().getReadPairedFlag() || duplicate.getRecord().getMateUnmappedFlag()) {
-            ++metrics.SINGLE_END_READ_DUPLICATES;
+            ++metrics.UNPAIRED_READ_DUPLICATES;
         } else {
             ++metrics.READ_PAIR_DUPLICATES;// will need to be divided by 2 at the end
         }
