@@ -219,7 +219,7 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
             ++metrics.SECONDARY_OR_SUPPLEMENTARY_RDS;
         } else if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
             ++metrics.UNPAIRED_READS_EXAMINED;
-            if ( isUnpairedReadKnownFragment(rec) )
+            if ( isSingleEndReadKnownFragment(rec) )
                 ++metrics.SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED;
         } else {
             ++metrics.READ_PAIRS_EXAMINED; // will need to be divided by 2 at the end
@@ -234,7 +234,7 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
             if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
                 ++metrics.SINGLE_END_READ_DUPLICATES;
 
-                if ( isUnpairedReadKnownFragment(rec) )
+                if ( isSingleEndReadKnownFragment(rec) )
                     ++metrics.SINGLE_END_READS_DUPLICATES_KNOWN_FRAGMENT_LENGTH;
                 else
                     ++metrics.SINGLE_END_READS_DUPLICATES_UNKNOWN_FRAGMENT_LENGTH;
@@ -245,10 +245,15 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
     }
 
     /**
-     * both ends are known
+     * This method is used to generate the following two metrics:
+     * SINGLE_END_READS_DUPLICATES_KNOWN_FRAGMENT_LENGTH
+     * SINGLE_END_READS_DUPLICATES_UNKNOWN_FRAGMENT_LENGTH
+     *
+     * It will return true if and only if the read is single ended and the exact fragment length is
+     *  known (i.e. it was not quality trimmed)
      */
-    private static boolean isUnpairedReadKnownFragment(final SAMRecord rec) {
-        if ( rec.getReadUnmappedFlag() )
+    private static boolean isSingleEndReadKnownFragment(final SAMRecord rec) {
+        if ( rec.getReadUnmappedFlag() || rec.getReadPairedFlag() )
             return false;
         else if ( MarkDuplicates.isAdapterClipped(rec) )
             return true;
