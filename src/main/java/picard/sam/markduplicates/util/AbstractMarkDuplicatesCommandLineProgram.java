@@ -232,7 +232,7 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
         if (!rec.isSecondaryOrSupplementary() && !rec.getReadUnmappedFlag()) {
             // Update the duplication metrics
             if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
-                ++metrics.SNGLE_END_READ_DUPLICATES;
+                ++metrics.SINGLE_END_READ_DUPLICATES;
 
                 if ( isUnpairedReadKnownFragment(rec) )
                     ++metrics.SINGLE_END_READS_DUPLICATES_KNOWN_FRAGMENT_LENGTH;
