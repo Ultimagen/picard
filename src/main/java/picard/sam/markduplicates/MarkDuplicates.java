@@ -1197,13 +1197,15 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     }
 
     private static boolean tmTagContains(final SAMRecord rec, final char[] chars) {
-        final String        tm = rec.getStringAttribute("tm");
+        final String tm = rec.getStringAttribute("tm");
+
         if ( tm == null ) {
             return false;
         } else {
             for ( char ch : chars ) {
-                if ( tm.indexOf(ch) >= 0 )
+                if ( tm.indexOf(ch) >= 0 ) {
                     return true;
+                }
             }
             return false;
         }
