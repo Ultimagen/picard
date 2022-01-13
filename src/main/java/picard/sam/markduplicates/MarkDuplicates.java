@@ -258,10 +258,11 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
     protected LibraryIdGenerator libraryIdGenerator = null; // this is initialized in buildSortedReadEndLists
 
-    // constants for tmTagContains
-    public static final char[]    TM_TAG_CONTAINS_A = {'A'};
-    public static final char[]    TM_TAG_CONTAINS_AQ = {'A', 'Q'};
-    public static final char[]    TM_TAG_CONTAINS_QZ = {'Q', 'Z'};
+    // constants for clippingTagContains
+    public static String        CLIPPING_TAG_NAME = "tm";
+    public static final char[]  CLIPPING_TAG_CONTAINS_A = {'A'};
+    public static final char[]  CLIPPING_TAG_CONTAINS_AQ = {'A', 'Q'};
+    public static final char[]  CLIPPING_TAG_CONTAINS_QZ = {'Q', 'Z'};
 
     private int getReadOneBarcodeValue(final SAMRecord record) {
         return EstimateLibraryComplexity.getReadBarcodeValue(record, READ_ONE_BARCODE_TAG);
@@ -1187,25 +1188,25 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     }
 
     public static boolean isAdapterClipped(final SAMRecord rec) {
-        return tmTagContains(rec, TM_TAG_CONTAINS_A);
+        return clippingTagContains(rec, CLIPPING_TAG_CONTAINS_A);
     }
 
     public static boolean isAdapterClippedWithQ(final SAMRecord rec) {
-        return tmTagContains(rec, TM_TAG_CONTAINS_AQ);
+        return clippingTagContains(rec, CLIPPING_TAG_CONTAINS_AQ);
     }
 
     public static boolean isQualityClipped(final SAMRecord rec) {
-        return tmTagContains(rec, TM_TAG_CONTAINS_QZ);
+        return clippingTagContains(rec, CLIPPING_TAG_CONTAINS_QZ);
     }
 
-    private static boolean tmTagContains(final SAMRecord rec, final char[] chars) {
-        final String tm = rec.getStringAttribute("tm");
+    private static boolean clippingTagContains(final SAMRecord rec, final char[] chars) {
+        final String clippingTagValue = rec.getStringAttribute(CLIPPING_TAG_NAME);
 
-        if ( tm == null ) {
+        if ( clippingTagValue == null ) {
             return false;
         } else {
             for ( final char ch : chars ) {
-                if ( tm.indexOf(ch) >= 0 ) {
+                if ( clippingTagValue.indexOf(ch) >= 0 ) {
                     return true;
                 }
             }
