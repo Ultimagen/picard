@@ -26,6 +26,7 @@ package picard.sam;
 
 import htsjdk.samtools.util.Histogram;
 import picard.analysis.MergeableMetricBase;
+import picard.util.MathUtil;
 
 /**
  * Metrics that are calculated during the process of marking duplicates
@@ -142,17 +143,8 @@ public class DuplicationMetrics extends MergeableMetricBase {
             PERCENT_DUPLICATION = (double) 0;
         }
 
-        if ( (UNPAIRED_READS_EXAMINED - UNPAIRED_WITH_TLEN)  != 0 ) {
-            UNPAIRED_DUP_RATE_WITHOUT_TLEN = UNPAIRED_DUPS_WITHOUT_TLEN / (double)(UNPAIRED_READS_EXAMINED - UNPAIRED_WITH_TLEN);
-        } else {
-            UNPAIRED_DUP_RATE_WITHOUT_TLEN = (double) 0;
-        }
-
-        if ( UNPAIRED_WITH_TLEN != 0 ) {
-            UNPAIRED_DUP_RATE_WITH_TLEN = UNPAIRED_DUPS_WITH_TLEN / (double) UNPAIRED_WITH_TLEN;
-        } else {
-            UNPAIRED_DUP_RATE_WITH_TLEN = (double) 0;
-        }
+        UNPAIRED_DUP_RATE_WITHOUT_TLEN = MathUtil.divide(UNPAIRED_DUPS_WITHOUT_TLEN, UNPAIRED_READS_EXAMINED - UNPAIRED_WITH_TLEN);
+        UNPAIRED_DUP_RATE_WITH_TLEN = MathUtil.divide(UNPAIRED_DUPS_WITH_TLEN, UNPAIRED_WITH_TLEN);
     }
 
     /**
