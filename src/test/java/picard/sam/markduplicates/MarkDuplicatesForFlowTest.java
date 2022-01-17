@@ -57,147 +57,193 @@ public class MarkDuplicatesForFlowTest  {
         return new MarkDuplicatesForFlowTester();
     }
 
-    @Test
-    public void testUSE_END_IN_UNPAIRED_READS() {
-        AbstractMarkDuplicatesCommandLineProgramTester tester;
-
-        // End location is not significant
-        tester = getTester();
-        tester.getSamRecordSetBuilder().setReadLength(76);
-        tester.addMappedFragment(0, 12, false, 50);
-        tester.getSamRecordSetBuilder().setReadLength(74);
-        tester.addMappedFragment(0, 12, true, 50);
-        tester.addArg("USE_END_IN_UNPAIRED_READS=false");
-        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
-        tester.runTest();
-
-        // End location is significant
-        tester = getTester();
-        tester.getSamRecordSetBuilder().setReadLength(76);
-        tester.addMappedFragment(0, 12, false, 50);
-        tester.getSamRecordSetBuilder().setReadLength(74);
-        tester.addMappedFragment(0, 12, false, 50);
-        tester.addArg("USE_END_IN_UNPAIRED_READS=true");
-        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
-        tester.runTest();
+    private interface TesterModifier {
+        void modify(AbstractMarkDuplicatesCommandLineProgramTester tester);
     }
 
-    @Test
-    public void testUSE_UNPAIRED_CLIPPED_END() {
-        AbstractMarkDuplicatesCommandLineProgramTester tester;
+    private static class TestRecordInfo {
+        int             length;
+        int             alignmentStart;
+        String          cigar;
+        boolean         isDuplicate;
+        String          startMod;
+        String          endMod;
 
-        // Do not use clipped locations (meaning, use unclipped)
-        tester = getTester();
-        tester.getSamRecordSetBuilder().setReadLength(76);
-        tester.addMappedFragment(0, 12, false, "1S76M", 50);
-        tester.getSamRecordSetBuilder().setReadLength(74);
-        tester.addMappedFragment(0, 12, false, "74M", 50);
-        tester.addArg("USE_UNPAIRED_CLIPPED_END=false");
-        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
-        tester.runTest();
-
-        // Use clipped locations (meaning, use clipped)
-        tester = getTester();
-        tester.getSamRecordSetBuilder().setReadLength(76);
-        tester.addMappedFragment(0, 12, false, "1S76M", 50);
-        tester.getSamRecordSetBuilder().setReadLength(74);
-        tester.addMappedFragment(0, 12, true, "74M", 50);
-        tester.addArg("USE_UNPAIRED_CLIPPED_END=true");
-        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
-        tester.runTest();
-
-        // Use clipped locations (meaning, use clipped)
-        tester = getTester();
-        tester.getSamRecordSetBuilder().setReadLength(76);
-        tester.addMappedFragment(0, 12, true, "1S76M1S", 50);
-        tester.getSamRecordSetBuilder().setReadLength(78);
-        tester.addMappedFragment(0, 11, false, "78M", 50);
-        tester.addArg("USE_UNPAIRED_CLIPPED_END=false");
-        tester.addArg("USE_END_IN_UNPAIRED_READS=true");
-        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
-        tester.runTest();
-
-        // Use clipped locations (meaning, use clipped)
-        tester = getTester();
-        tester.getSamRecordSetBuilder().setReadLength(76);
-        tester.addMappedFragment(0, 12, false, "1S76M1S", 50);
-        tester.getSamRecordSetBuilder().setReadLength(78);
-        tester.addMappedFragment(0, 11, false, "78M", 50);
-        tester.addArg("USE_UNPAIRED_CLIPPED_END=true");
-        tester.addArg("USE_END_IN_UNPAIRED_READS=true");
-        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
-        tester.runTest();
+        TestRecordInfo(final int length, final int alignmentStart, final String cigar, final boolean isDuplicate,
+                       final String startMod, final String endMod) {
+            this.length = length;
+            this.alignmentStart = alignmentStart;
+            this.cigar = cigar;
+            this.isDuplicate = isDuplicate;
+            this.startMod = startMod;
+            this.endMod = endMod;
+        }
     }
 
-    @Test
-    public void testFLOW_SKIP_FIRST_N_FLOWS() {
-        AbstractMarkDuplicatesCommandLineProgramTester tester;
-        SAMRecord[]     records;
+    @DataProvider(name ="forFlowDataProvider")
+    public Object[][] dataProvider() {
+        return new Object[][] {
+                // testUSE_END_IN_UNPAIRED_READS: End location is not significant
+                {
+                    null,
+                    new TestRecordInfo[] {
+                            new TestRecordInfo(76, 12, null, false, null, null),
+                            new TestRecordInfo(74, 12, null, true, null, null)
+                    },
+                    new String[] { "USE_END_IN_UNPAIRED_READS=false" }, null
+                },
 
-        // Do not use clipped locations (meaning, use unclipped)
-        tester = getTester();
-        tester.getSamRecordSetBuilder().setReadLength(76);
-        tester.addMappedFragment(0, 12, false, "76M", 50);
-        tester.addMappedFragment(0, 12, true, "76M", 50);
-        records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
-        System.arraycopy("ACGTT".getBytes(), 0, records[0].getReadBases(), 0, 5);
-        System.arraycopy("TTGCA".getBytes(), 0, records[0].getReadBases(), records[0].getReadBases().length - 5, 4);
-        System.arraycopy("ACGGT".getBytes(), 0, records[1].getReadBases(), 0, 5);
-        System.arraycopy("TGGCA".getBytes(), 0, records[1].getReadBases(), records[1].getReadBases().length - 5, 4);
-        tester.addArg("USE_END_IN_UNPAIRED_READS=true");
-        tester.addArg("FLOW_SKIP_FIRST_N_FLOWS=0");
-        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
-        tester.runTest();
+                // testUSE_END_IN_UNPAIRED_READS: End location is significant
+                {
+                        null,
+                        new TestRecordInfo[] {
+                                new TestRecordInfo(76, 12, null, false, null, null),
+                                new TestRecordInfo(74, 12, null, false, null, null)
+                        },
+                        new String[] { "USE_END_IN_UNPAIRED_READS=true" }, null
+                },
 
-        // Do not use clipped locations (meaning, use unclipped)
-        tester = getTester();
-        tester.getSamRecordSetBuilder().setReadLength(76);
-        tester.addMappedFragment(0, 12, false, "76M", 50);
-        tester.addMappedFragment(0, 12, false, "76M", 50);
-        records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
-        System.arraycopy("ACGTT".getBytes(), 0, records[0].getReadBases(), 0, 5);
-        System.arraycopy("TTGCA".getBytes(), 0, records[0].getReadBases(), records[0].getReadBases().length - 5, 4);
-        System.arraycopy("CCGGT".getBytes(), 0, records[1].getReadBases(), 0, 5);
-        System.arraycopy("TGGCA".getBytes(), 0, records[1].getReadBases(), records[1].getReadBases().length - 5, 4);
-        tester.addArg("USE_END_IN_UNPAIRED_READS=true");
-        tester.addArg("FLOW_SKIP_FIRST_N_FLOWS=3");
-        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
-        tester.runTest();
+                // testUSE_UNPAIRED_CLIPPED_END: Do not use clipped locations (meaning, use unclipped)
+                {
+                        null,
+                        new TestRecordInfo[] {
+                                new TestRecordInfo(76, 12, "1S76M", false, null, null),
+                                new TestRecordInfo(74, 12, "74M", false, null, null)
+                        },
+                        new String[] { "USE_UNPAIRED_CLIPPED_END=false" }, null
+                },
+
+                // testUSE_UNPAIRED_CLIPPED_END: Use clipped locations (meaning, use clipped)
+                {
+                        null,
+                        new TestRecordInfo[] {
+                                new TestRecordInfo(76, 12, "1S76M", false, null, null),
+                                new TestRecordInfo(74, 12, "74M", true, null, null)
+                        },
+                        new String[] { "USE_UNPAIRED_CLIPPED_END=true" }, null
+                },
+
+                // testUSE_UNPAIRED_CLIPPED_END: Use clipped locations (meaning, use clipped)
+                {
+                        null,
+                        new TestRecordInfo[] {
+                                new TestRecordInfo(76, 12, "1S76M1S", true, null, null),
+                                new TestRecordInfo(78, 11, "78M", false, null, null)
+                        },
+                        new String[] { "USE_UNPAIRED_CLIPPED_END=false", "USE_END_IN_UNPAIRED_READS=true" }, null
+                },
+
+                // testUSE_UNPAIRED_CLIPPED_END: Use clipped locations (meaning, use clipped)
+                {
+                        null,
+                        new TestRecordInfo[] {
+                                new TestRecordInfo(76, 12, "1S76M1S", false, null, null),
+                                new TestRecordInfo(78, 11, "78M", false, null, null)
+                        },
+                        new String[] { "USE_UNPAIRED_CLIPPED_END=true", "USE_END_IN_UNPAIRED_READS=true" }, null
+                },
+
+                // testFLOW_SKIP_FIRST_N_FLOWS: Do not use clipped locations (meaning, use unclipped)
+                {
+                        null,
+                        new TestRecordInfo[] {
+                                new TestRecordInfo(76, 12,"76M", false, "ACGTT", "TTGCA"),
+                                new TestRecordInfo(76, 12, "76M", true, "ACGGT", "TGGCA")
+                        },
+                        new String[] { "USE_END_IN_UNPAIRED_READS=true", "FLOW_SKIP_FIRST_N_FLOWS=0" }, null
+                },
+
+                // testFLOW_SKIP_FIRST_N_FLOWS: Do not use clipped locations (meaning, use unclipped)
+                {
+                        null,
+                        new TestRecordInfo[] {
+                                new TestRecordInfo(76, 12,"76M", false, "ACGTT", "TTGCA"),
+                                new TestRecordInfo(76, 12, "76M", false, "CCGGT", "TGGCA")
+                        },
+                        new String[] { "USE_END_IN_UNPAIRED_READS=true", "FLOW_SKIP_FIRST_N_FLOWS=3" }, null
+                },
+
+                // testFLOW_QUALITY_SUM_STRATEGY: normal sum
+                {
+                        DuplicateScoringStrategy.ScoringStrategy.SUM_OF_BASE_QUALITIES,
+                        new TestRecordInfo[] {
+                                new TestRecordInfo(76, 12,"76M", true, "AAAC", null),
+                                new TestRecordInfo(76, 12, "76M", false, "AACC", null)
+                        },
+                        new String[] { "FLOW_QUALITY_SUM_STRATEGY=false" },
+                        new TesterModifier() {
+                            @Override
+                            public void modify(final AbstractMarkDuplicatesCommandLineProgramTester tester) {
+                                final SAMRecord[] records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
+                                records[0].setAttribute("tp", new int[76]);
+                                records[1].setAttribute("tp", new int[76]);
+                                records[0].getBaseQualities()[1] = 25; // dip inside AAA
+                            }
+                        }
+                },
+
+                // testFLOW_QUALITY_SUM_STRATEGY: flow (homopolymer based) sum
+                {
+                        DuplicateScoringStrategy.ScoringStrategy.SUM_OF_BASE_QUALITIES,
+                        new TestRecordInfo[] {
+                                new TestRecordInfo(76, 12,"76M", false, "AAAC", null),
+                                new TestRecordInfo(76, 12, "76M", true, "AACC", null)
+                        },
+                        new String[] { "FLOW_QUALITY_SUM_STRATEGY=true" },
+                        new TesterModifier() {
+                            @Override
+                            public void modify(final AbstractMarkDuplicatesCommandLineProgramTester tester) {
+                                final SAMRecord[] records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
+                                records[0].setAttribute("tp", new int[76]);
+                                records[1].setAttribute("tp", new int[76]);
+                                records[0].getBaseQualities()[1] = 25; // dip inside AAA
+                            }
+                        }
+                },
+
+        };
     }
 
-    @Test
-    public void testFLOW_QUALITY_SUM_STRATEGY() {
-        AbstractMarkDuplicatesCommandLineProgramTester tester;
-        SAMRecord[]     records;
+    @Test(dataProvider = "forFlowDataProvider")
+    public void testForFlow(final DuplicateScoringStrategy.ScoringStrategy scoringStrategy, final TestRecordInfo[] recInfos, final String[] params, TesterModifier modifier) {
 
-        //  normal sum
-        tester = new MarkDuplicatesForFlowTester(DuplicateScoringStrategy.ScoringStrategy.SUM_OF_BASE_QUALITIES);
-        tester.getSamRecordSetBuilder().setReadLength(76);
-        tester.addMappedFragment(0, 12, true, "76M", 50);
-        tester.addMappedFragment(0, 12, false, "76M", 50);
-        records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
-        records[0].setAttribute("tp", new int[76]);
-        records[1].setAttribute("tp", new int[76]);
-        records[0].getBaseQualities()[1] = 25; // dip inside AAA
-        System.arraycopy("AAAC".getBytes(), 0, records[0].getReadBases(), 0, 4);
-        System.arraycopy("AACC".getBytes(), 0, records[1].getReadBases(), 0, 4);
-        tester.addArg("FLOW_QUALITY_SUM_STRATEGY=false");
-        tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
-        tester.runTest();
+        // get tester, build records
+        final AbstractMarkDuplicatesCommandLineProgramTester tester =
+                scoringStrategy == null ? getTester() : new MarkDuplicatesForFlowTester(scoringStrategy);
+        for ( final TestRecordInfo info : recInfos ) {
+            tester.getSamRecordSetBuilder().setReadLength(info.length);
+            if ( info.cigar != null ) {
+                tester.addMappedFragment(0, info.alignmentStart, info.isDuplicate, info.cigar, 50);
+            } else {
+                tester.addMappedFragment(0, info.alignmentStart, info.isDuplicate, 50);
+            }
+        }
 
-        // flow (homopolymer based) sum
-        tester = new MarkDuplicatesForFlowTester(DuplicateScoringStrategy.ScoringStrategy.SUM_OF_BASE_QUALITIES);
-        tester.getSamRecordSetBuilder().setReadLength(76);
-        tester.addMappedFragment(0, 12, false, "76M", 50);
-        tester.addMappedFragment(0, 12, true, "76M", 50);
-        records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
-        records[0].setAttribute("tp", new int[76]);
-        records[1].setAttribute("tp", new int[76]);
-        records[0].getBaseQualities()[1] = 25; // dip inside AAA
-        System.arraycopy("AAAC".getBytes(), 0, records[0].getReadBases(), 0, 4);
-        System.arraycopy("AACC".getBytes(), 0, records[1].getReadBases(), 0, 4);
-        tester.addArg("FLOW_QUALITY_SUM_STRATEGY=true");
+        // modify records
+        final SAMRecord[] records = tester.getSamRecordSetBuilder().getRecords().toArray(new SAMRecord[0]);
+        for ( int i = 0 ; i < records.length ; i++ ) {
+            final SAMRecord       rec = records[i];
+            final TestRecordInfo  info = recInfos[i];
+
+            if ( info.startMod != null ) {
+                System.arraycopy(info.startMod.getBytes(), 0, rec.getReadBases(), 0, info.startMod.length());
+            }
+            if ( info.endMod != null ) {
+                System.arraycopy(info.endMod.getBytes(), 0, rec.getReadBases(), rec.getReadBases().length - info.endMod.length(), info.endMod.length());
+            }
+        }
+
+        // add parames, set flow order
+        for ( final String param : params ) {
+            tester.addArg(param);
+        }
         tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
+
+        // further modify tester
+        if ( modifier != null )
+            modifier.modify(tester);
+
+        // run test
         tester.runTest();
     }
 }
