@@ -62,12 +62,12 @@ public class MarkDuplicatesForFlowTest  {
     }
 
     private static class TestRecordInfo {
-        int             length;
-        int             alignmentStart;
-        String          cigar;
-        boolean         isDuplicate;
-        String          startMod;
-        String          endMod;
+        final int  length;
+        final int  alignmentStart;
+        final String  cigar;
+        final boolean isDuplicate;
+        final String startMod;
+        final String endMod;
 
         TestRecordInfo(final int length, final int alignmentStart, final String cigar, final boolean isDuplicate,
                        final String startMod, final String endMod) {
@@ -240,8 +240,9 @@ public class MarkDuplicatesForFlowTest  {
         tester.getSamRecordSetBuilder().getHeader().getReadGroups().get(0).setFlowOrder(FLOW_ORDER);
 
         // further modify tester
-        if ( modifier != null )
+        if ( modifier != null ) {
             modifier.modify(tester);
+        }
 
         // run test
         tester.runTest();
