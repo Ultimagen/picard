@@ -144,7 +144,7 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             this.useOriginalQualities = useOriginalQualities;
             this.includeSecondaryAlignments = includeSecondaryAlignments;
             this.includeSupplementalAlignments = includeSupplementalAlignments;
-            this.isSingleEnded=true;
+            this.isSingleEnded = true;
         }
 
         public void acceptRecord(final SAMRecord rec, final ReferenceSequence ref) {
