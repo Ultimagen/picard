@@ -42,7 +42,6 @@ import picard.PicardException;
 import picard.cmdline.CommandLineProgram;
 import picard.cmdline.StandardOptionDefinitions;
 import picard.sam.DuplicationMetrics;
-import picard.sam.markduplicates.MarkDuplicates;
 import picard.sam.markduplicates.MarkDuplicatesForFlow;
 import picard.sam.util.PGTagArgumentCollection;
 
@@ -221,7 +220,7 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
         } else if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
             ++metrics.UNPAIRED_READS_EXAMINED;
             if ( isSingleEndReadKnownFragment(rec) )
-                ++metrics.SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED;
+                ++metrics.UNPAIRED_WITH_TLEN;
         } else {
             ++metrics.READ_PAIRS_EXAMINED; // will need to be divided by 2 at the end
         }
@@ -236,9 +235,9 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
                 ++metrics.UNPAIRED_READ_DUPLICATES;
 
                 if ( isSingleEndReadKnownFragment(rec) )
-                    ++metrics.SINGLE_END_READS_DUPLICATES_KNOWN_FRAGMENT_LENGTH;
+                    ++metrics.UNPAIRED_DUPS_WITH_TLEN;
                 else
-                    ++metrics.SINGLE_END_READS_DUPLICATES_UNKNOWN_FRAGMENT_LENGTH;
+                    ++metrics.UNPAIRED_DUPS_WITHOUT_TLEN;
             } else {
                 ++metrics.READ_PAIR_DUPLICATES;// will need to be divided by 2 at the end
             }

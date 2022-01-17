@@ -98,34 +98,34 @@ public class DuplicationMetrics extends MergeableMetricBase {
      * count of single end reads where the exact fragment length is known (i.e. clipped)
      */
     @MergeByAdding
-    public long SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED;
+    public long UNPAIRED_WITH_TLEN;
 
     /*
      * count of single end duplicates where the exact fragment length is
      * unknown (quality trimmed, not clipped)
      */
     @MergeByAdding
-    public long SINGLE_END_READS_DUPLICATES_UNKNOWN_FRAGMENT_LENGTH;
+    public long UNPAIRED_DUPS_WITHOUT_TLEN;
 
     /*
      * count of duplicates where both ends are known
      */
     @MergeByAdding
-    public long SINGLE_END_READS_DUPLICATES_KNOWN_FRAGMENT_LENGTH;
+    public long UNPAIRED_DUPS_WITH_TLEN;
 
     /**
      * The fraction of duplicated reads out of all reads with exact
      * fragment length unknown
      */
     @NoMergingIsDerived
-    public Double PERCENT_DUPLICATION_UNKNOWN_FRAGMENT_LENGTH;
+    public Double UNPAIRED_DUP_RATE_WITHOUT_TLEN;
 
     /**
      * The fraction of duplicated reads out of all reads with exact fragment
      * length known
      */
     @NoMergingIsDerived
-    public Double PERCENT_DUPLICATION_KNOWN_FRAGMENT_LENGTH;
+    public Double UNPAIRED_DUP_RATE_WITH_TLEN;
 
     /**
      * Fills in the ESTIMATED_LIBRARY_SIZE based on the paired read data examined where
@@ -142,16 +142,16 @@ public class DuplicationMetrics extends MergeableMetricBase {
             PERCENT_DUPLICATION = (double) 0;
         }
 
-        if ( (UNPAIRED_READS_EXAMINED - SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED)  != 0 ) {
-            PERCENT_DUPLICATION_UNKNOWN_FRAGMENT_LENGTH = SINGLE_END_READS_DUPLICATES_UNKNOWN_FRAGMENT_LENGTH / (double)(UNPAIRED_READS_EXAMINED - SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED);
+        if ( (UNPAIRED_READS_EXAMINED - UNPAIRED_WITH_TLEN)  != 0 ) {
+            UNPAIRED_DUP_RATE_WITHOUT_TLEN = UNPAIRED_DUPS_WITHOUT_TLEN / (double)(UNPAIRED_READS_EXAMINED - UNPAIRED_WITH_TLEN);
         } else {
-            PERCENT_DUPLICATION_UNKNOWN_FRAGMENT_LENGTH = (double) 0;
+            UNPAIRED_DUP_RATE_WITHOUT_TLEN = (double) 0;
         }
 
-        if ( SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED != 0 ) {
-            PERCENT_DUPLICATION_KNOWN_FRAGMENT_LENGTH = SINGLE_END_READS_DUPLICATES_KNOWN_FRAGMENT_LENGTH / (double) SINGLE_END_READS_KNOWN_FRAGMENT_LENGTH_EXAMINED;
+        if ( UNPAIRED_WITH_TLEN != 0 ) {
+            UNPAIRED_DUP_RATE_WITH_TLEN = UNPAIRED_DUPS_WITH_TLEN / (double) UNPAIRED_WITH_TLEN;
         } else {
-            PERCENT_DUPLICATION_KNOWN_FRAGMENT_LENGTH = (double) 0;
+            UNPAIRED_DUP_RATE_WITH_TLEN = (double) 0;
         }
     }
 
