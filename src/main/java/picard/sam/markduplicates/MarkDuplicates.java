@@ -109,10 +109,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "for detailed explanations of the output metrics." +
             "<hr />";
 
-    public static  final int   END_INSIGNIFICANT = 0;
-    public static final String ATTR_DUPLICATE_SCORE = "DuplicateScore";
-    public static final int FLOW_EFFECTIVE_QUALITY_THRESHOLD = 15;
-
     /**
      * Enum used to control how duplicates are flagged in the DT optional tag on each read.
      */

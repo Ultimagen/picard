@@ -81,7 +81,7 @@ public class MarkDuplicatesForFlowTest  {
     }
 
     @DataProvider(name ="forFlowDataProvider")
-    public Object[][] dataProvider() {
+    public Object[][] forFlowDataProvider() {
         return new Object[][] {
                 // testUSE_END_IN_UNPAIRED_READS: End location is not significant
                 {
@@ -246,4 +246,33 @@ public class MarkDuplicatesForFlowTest  {
         // run test
         tester.runTest();
     }
+
+    @DataProvider(name ="getFlowSumOfBaseQualitiesDataProvider")
+    public Object[][] getFlowSumOfBaseQualitiesDataProvider() {
+        return new Object[][] {
+                { "AAAA", new byte[] {50,50,50,50}, 30, 200 },
+                { "AAAA", new byte[] {50,10,10,50}, 30, 200 },
+                { "AAAA", new byte[] {20,10,10,20}, 30, 0 },
+                { "AABBCC", new byte[] {50,50,10,10,40,40}, 30, 180 },
+        };
+    }
+
+    @Test(dataProvider = "getFlowSumOfBaseQualitiesDataProvider")
+    public void testGetFlowSumOfBaseQualities(final String bases, final byte[] quals, final int threshold, final int expectedScore) {
+
+        // build record
+        final AbstractMarkDuplicatesCommandLineProgramTester tester = getTester();
+        tester.getSamRecordSetBuilder().setReadLength(bases.length());
+        tester.addMappedFragment(0, 12, false, 50);
+
+        // install bases and quals
+        final SAMRecord rec = tester.getSamRecordSetBuilder().getRecords().iterator().next();
+        System.arraycopy(bases.getBytes(), 0, rec.getReadBases(), 0,bases.length());
+        System.arraycopy(quals, 0, rec.getBaseQualities(), 0, quals.length);
+
+        // calculate score
+        final int score = MarkDuplicatesForFlow.getFlowSumOfBaseQualities(rec, threshold);
+        Assert.assertEquals(score, expectedScore);
+    }
+
 }

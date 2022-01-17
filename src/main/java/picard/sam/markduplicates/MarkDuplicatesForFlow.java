@@ -34,30 +34,36 @@ public class MarkDuplicatesForFlow extends MarkDuplicates {
     static final String FLOW_ONLY_SUFFIX = " (flow based read version)";
     private final Log log = Log.getInstance(MarkDuplicatesForFlow.class);
 
+    private static  final int END_INSIGNIFICANT_VALUE = 0;
+    private static final String ATTR_DUPLICATE_SCORE = "ForFlowDuplicateScore";
 
     @Argument(doc = "Use specific quality summing strategy for flow based reads. The strategy ensures that the same " +
-            "(and correct) quality value is used for all bases of the same homopolymer. Default false.")
+            "(and correct) quality value is used for all bases of the same homopolymer.")
     public boolean FLOW_QUALITY_SUM_STRATEGY = false;
 
     @Argument(doc = "Make the end location of single end read be significant when considering duplicates, " +
             "in addition to the start location, which is always significant (i.e. require single end reads to start and" +
-            "end on the same position to be considered duplicate). Default false.")
+            "end on the same position to be considered duplicate).")
     public boolean USE_END_IN_UNPAIRED_READS = false;
 
-    @Argument(doc = "Use position of the clipping as the end position, when considering duplicates (or use the unclipped end position). Default false.")
+    @Argument(doc = "Use position of the clipping as the end position, when considering duplicates (or use the unclipped end position).")
     public boolean USE_UNPAIRED_CLIPPED_END = false;
 
     @Argument(doc = "Maximal difference of the read end position that counted as equal. Useful for flow based " +
-            "reads where the end position might vary due to sequencing errors. Default 0.")
+            "reads where the end position might vary due to sequencing errors.")
     public int UNPAIRED_END_UNCERTAINTY = 0;
 
     @Argument(doc = "Skip first N flows, when considering duplicates. Useful for flow based reads where sometimes there " +
-            "is noise in the first flows. Default 0.")
+            "is noise in the first flows.")
     public int FLOW_SKIP_FIRST_N_FLOWS = 0;
 
     @Argument(doc = "Treat position of read trimming based on quality as the known end (relevant for flow based reads). Default false - if the read " +
-            "is trimmed on quality its end is not defined and the read is duplicate with any read starting at the same place. ")
+            "is trimmed on quality its end is not defined and the read is duplicate with any read starting at the same place.")
     public boolean FLOW_Q_IS_KNOWN_END = false;
+
+    @Argument(doc = "Threshold for considering a quality value high enough to be included when calculating FLOW_QUALITY_SUM_STRATEGY calculation.")
+    public int FLOW_EFFECTIVE_QUALITY_THRESHOLD = 15;
+
 
     // constants for clippingTagContains
     public static String        CLIPPING_TAG_NAME = "tm";
@@ -109,7 +115,7 @@ public class MarkDuplicatesForFlow extends MarkDuplicates {
             if (firstOfNextChunk != null && areComparableForDuplicatesWithEndSignificance(firstOfNextChunk, next, true, useBarcodes,
                     nextChunkRead1Coordinate2Min, nextChunkRead1Coordinate2Max)) {
                 nextChunk.add(next);
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT ) {
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT_VALUE) {
                     nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
                     nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
                 }
@@ -118,7 +124,7 @@ public class MarkDuplicatesForFlow extends MarkDuplicates {
                 nextChunk.clear();
                 nextChunk.add(next);
                 firstOfNextChunk = next;
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT )
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT_VALUE)
                     nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
                 else {
                     nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
@@ -146,11 +152,11 @@ public class MarkDuplicatesForFlow extends MarkDuplicates {
                 nextChunk.add(next);
                 containsPairs = containsPairs || next.isPaired();
                 containsFrags = containsFrags || !next.isPaired();
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT ) {
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT_VALUE) {
                     nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
                     nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
 
-                    if ( firstOfNextChunk.read1Coordinate2 == END_INSIGNIFICANT )
+                    if ( firstOfNextChunk.read1Coordinate2 == END_INSIGNIFICANT_VALUE)
                         firstOfNextChunk = next;
                 }
             } else {
@@ -160,7 +166,7 @@ public class MarkDuplicatesForFlow extends MarkDuplicates {
                 nextChunk.clear();
                 nextChunk.add(next);
                 firstOfNextChunk = next;
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT )
+                if ( next.read1Coordinate2 != END_INSIGNIFICANT_VALUE)
                     nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
                 else {
                     nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
@@ -229,34 +235,45 @@ public class MarkDuplicatesForFlow extends MarkDuplicates {
     }
 
     private boolean endCoorSignificant(final int lhsCoor, final int rhsCoor) {
-        return lhsCoor != END_INSIGNIFICANT && rhsCoor != END_INSIGNIFICANT;
+        return lhsCoor != END_INSIGNIFICANT_VALUE && rhsCoor != END_INSIGNIFICANT_VALUE;
     }
 
     private boolean endCoorInRangeWithUncertainty(int lhsCoorMin, int lhsCoorMax, int rhsCoor, int uncertainty) {
         return (rhsCoor >= (lhsCoorMin - uncertainty)) && (rhsCoor <= (lhsCoorMax + uncertainty));
     }
 
-    private int getFlowSumOfBaseQualities(final SAMRecord rec) {
+    /**
+     * A quality summing scoring strategy used for flow based reads.
+     *
+     * The method walks on the bases of the read, in the synthesis direction. The each base, the effective
+     * quality value is defined as the value on the first base on the hmer to which the base belongs to. The score
+     * is defined to be the sum of all effective values above a given threshold.
+     *
+     * @param rec - SAMRecord to get a score for
+     * @param threshold - threshold above which effective quality is included
+     * @return - calculated score (see method description)
+     */
+    static protected int getFlowSumOfBaseQualities(final SAMRecord rec, int threshold) {
         int score = 0;
 
         // access qualities and bases
-        final byte[]      quals = rec.getBaseQualities();
-        final byte[]      bases = rec.getReadBases();
+        final byte[] quals = rec.getBaseQualities();
+        final byte[]  bases = rec.getReadBases();
 
         // create iteration range and direction
-        final int         startingOffset = !rec.getReadNegativeStrandFlag() ? 0 : bases.length;
-        final int         endOffset = !rec.getReadNegativeStrandFlag() ? bases.length : 0;
-        final int         iterIncr = !rec.getReadNegativeStrandFlag() ? 1 : -1;
+        final int startingOffset = !rec.getReadNegativeStrandFlag() ? 0 : bases.length;
+        final int endOffset = !rec.getReadNegativeStrandFlag() ? bases.length : 0;
+        final int  iterIncr = !rec.getReadNegativeStrandFlag() ? 1 : -1;
 
         // loop on bases, extract qual related to homopolymer from start of homopolymer
-        byte        lastBase = 0;
-        byte        effectiveQual = 0;
+        byte lastBase = 0;
+        byte effectiveQual = 0;
         for ( int i = startingOffset ; i != endOffset ; i += iterIncr ) {
-            final byte        base = bases[i];
+            final byte base = bases[i];
             if ( base != lastBase ) {
                 effectiveQual = quals[i];
             }
-            if ( effectiveQual >= FLOW_EFFECTIVE_QUALITY_THRESHOLD) {
+            if ( effectiveQual >= threshold) {
                 score += effectiveQual;
             }
             lastBase = base;
@@ -279,14 +296,14 @@ public class MarkDuplicatesForFlow extends MarkDuplicates {
 
     private short computeFlowDuplicateScore(SAMRecord rec, int start, int end) {
 
-        if ( end == END_INSIGNIFICANT )
+        if ( end == END_INSIGNIFICANT_VALUE)
             return -1;
 
         Short storedScore = (Short)rec.getTransientAttribute(ATTR_DUPLICATE_SCORE);
         if ( storedScore == null ) {
             short score = 0;
 
-            score += (short) Math.min(getFlowSumOfBaseQualities(rec), Short.MAX_VALUE / 2);
+            score += (short) Math.min(getFlowSumOfBaseQualities(rec, FLOW_EFFECTIVE_QUALITY_THRESHOLD), Short.MAX_VALUE / 2);
 
             score += rec.getReadFailsVendorQualityCheckFlag() ? (short) (Short.MIN_VALUE / 2) : 0;
             storedScore = score;
@@ -296,16 +313,16 @@ public class MarkDuplicatesForFlow extends MarkDuplicates {
         return storedScore;
     }
     private int getReadEndCoordinate(final SAMRecord rec, final boolean start, final boolean certain) {
-        final FlowOrder     flowOrder = new FlowOrder(rec);
-        final int           unclippedCoor = start ? rec.getUnclippedStart() : rec.getUnclippedEnd();
-        final int           alignmentCoor = start ? rec.getAlignmentStart() : rec.getAlignmentEnd();
+        final FlowOrder flowOrder = new FlowOrder(rec);
+        final int unclippedCoor = start ? rec.getUnclippedStart() : rec.getUnclippedEnd();
+        final int alignmentCoor = start ? rec.getAlignmentStart() : rec.getAlignmentEnd();
 
         if ( !flowOrder.isValid() ) {
             return unclippedCoor;
         } else if ( certain && FLOW_SKIP_FIRST_N_FLOWS != 0 ) {
             final byte[] bases = rec.getReadBases();
-            byte        hmerBase = start ? bases[0] : bases[bases.length - 1];
-            int         hmersLeft = FLOW_SKIP_FIRST_N_FLOWS;      // number of hmer left to trim
+            byte hmerBase = start ? bases[0] : bases[bases.length - 1];
+            int  hmersLeft = FLOW_SKIP_FIRST_N_FLOWS;      // number of hmer left to trim
 
             // advance flow order to base
             while ( flowOrder.current() != hmerBase ) {
@@ -313,7 +330,7 @@ public class MarkDuplicatesForFlow extends MarkDuplicates {
                 hmersLeft--;
             }
 
-            int         hmerSize;
+            int hmerSize;
             for ( hmerSize = 1; hmerSize < bases.length ; hmerSize++ ) {
                 if ((start ? bases[hmerSize] : bases[bases.length - 1 - hmerSize]) != hmerBase) {
                     if (--hmersLeft <= 0) {
@@ -331,14 +348,14 @@ public class MarkDuplicatesForFlow extends MarkDuplicates {
                     }
                 }
             }
-            final int     coor = unclippedCoor + (start ? hmerSize : -hmerSize);
+            final int  coor = unclippedCoor + (start ? hmerSize : -hmerSize);
             return USE_UNPAIRED_CLIPPED_END
                     ? (start ? Math.max(coor, alignmentCoor) : Math.min(coor, alignmentCoor))
                     : coor;
         } else if ( FLOW_Q_IS_KNOWN_END ? isAdapterClipped(rec) : isAdapterClippedWithQ(rec) ) {
             return unclippedCoor;
         } else if ( !certain && isQualityClipped(rec) ) {
-            return END_INSIGNIFICANT;
+            return END_INSIGNIFICANT_VALUE;
         } else if (USE_UNPAIRED_CLIPPED_END) {
             return alignmentCoor;
         } else {
