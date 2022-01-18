@@ -26,12 +26,15 @@ package picard.analysis;
 
 import htsjdk.samtools.metrics.MetricsFile;
 import org.testng.Assert;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 import picard.cmdline.CommandLineProgramTest;
 
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * Created by kbergin on 11/23/15.
@@ -43,8 +46,56 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         return CollectQualityYieldMetrics.class.getSimpleName();
     }
 
+    @DataProvider(name = "testSimpleExamplesDataProvider")
+    public Object[][] testSimpleExamplesDataProvider() {
+        return new Object[][] {
+                {
+                        "collect_quality_yield_test1.sam",
+                        new Consumer<CollectQualityYieldMetrics.QualityYieldMetrics>() {
+                            @Override
+                            public void accept(final CollectQualityYieldMetrics.QualityYieldMetrics metrics) {
+                                Assert.assertEquals(metrics.TOTAL_READS, 3);
+                                Assert.assertEquals(metrics.PF_READS, 2);
+                                Assert.assertEquals(metrics.READ_LENGTH, 10);
+                                Assert.assertEquals(metrics.TOTAL_BASES, 30);
+                                Assert.assertEquals(metrics.PF_BASES, 20);
+                                Assert.assertEquals(metrics.Q20_BASES, 30);
+                                Assert.assertEquals(metrics.PF_Q20_BASES, 20);
+                                Assert.assertEquals(metrics.Q30_BASES, 5);
+                                Assert.assertEquals(metrics.PF_Q30_BASES, 5);
+                                Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 40);
+                                Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 27);
+                                Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_30, 0);
+                                Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_25, 0);
+                            }
+                        }
+                },
+        };
+    }
+
+    @Test(dataProvider = "testSimpleExamplesDataProvider")
+    public void testSimpleExamples(final String inputFilename, Consumer<CollectQualityYieldMetrics.QualityYieldMetrics> metricsConsumer) throws IOException {
+        final File input = new File(TEST_DATA_DIR, "CollectQualityYieldMetrics/" + inputFilename);
+        final File outfile   = File.createTempFile("test", ".quality_yield_metrics");
+        outfile.deleteOnExit();
+        final String[] args = new String[] {
+                "INPUT="  + input.getAbsolutePath(),
+                "OUTPUT=" + outfile.getAbsolutePath(),
+        };
+
+        Assert.assertEquals(runPicardCommandLine(args), 0);
+
+        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, ?> output = new MetricsFile<>();
+        output.read(new FileReader(outfile));
+
+        Assert.assertEquals(output.getMetrics().size(),1);
+
+        final CollectQualityYieldMetrics.QualityYieldMetrics metrics = output.getMetrics().get(0);
+        metricsConsumer.accept(metrics);
+    }
+
     @Test
-    public void test() throws IOException {
+    public void testIntegration() throws IOException {
         final File input = new File(TEST_DATA_DIR, "insert_size_metrics_test.sam");
         final File outfile   = File.createTempFile("test", ".quality_yield_metrics");
         outfile.deleteOnExit();
@@ -77,7 +128,7 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
     }
 
     @Test
-    public void test_se() throws IOException {
+    public void testSubsample() throws IOException {
         final File input = new File(TEST_DATA_DIR, "subsample.bam");
         final File outfile   = File.createTempFile("test", ".quality_yield_metrics");
         outfile.deleteOnExit();
@@ -111,7 +162,7 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
     }
 
     @Test
-    public void test_multi() throws IOException {
+    public void testMulti() throws IOException {
         final File input = new File(TEST_DATA_DIR, "insert_size_metrics_test.sam");
         final File reference = new File(CollectAlignmentSummaryMetricsTest.TEST_DATA_DIR, "summary_alignment_stats_test.fasta");
         final File outfile   = File.createTempFile("test", ".quality_yield_metrics");
@@ -149,7 +200,7 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
     }
 
     @Test
-    public void test_merge() {
+    public void testMerge() {
         CollectQualityYieldMetrics.QualityYieldMetrics      m1 = createTestQualityYieldMetrics();
         CollectQualityYieldMetrics.QualityYieldMetrics      m2 = createTestQualityYieldMetrics();
 
@@ -191,7 +242,6 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         m.AVG_READ_LENGTH_Q_BELOW_25 = 200;
 
         return m;
-
     }
 
 
