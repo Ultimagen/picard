@@ -42,7 +42,7 @@ import picard.PicardException;
 import picard.cmdline.CommandLineProgram;
 import picard.cmdline.StandardOptionDefinitions;
 import picard.sam.DuplicationMetrics;
-import picard.sam.markduplicates.MarkDuplicatesForFlow;
+import picard.sam.markduplicates.MarkDuplicatesForFlowHelper;
 import picard.sam.util.PGTagArgumentCollection;
 
 import java.io.File;
@@ -255,7 +255,7 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
     private static boolean isSingleEndReadKnownFragment(final SAMRecord rec) {
         if ( rec.getReadUnmappedFlag() || rec.getReadPairedFlag() )
             return false;
-        else if ( MarkDuplicatesForFlow.isAdapterClipped(rec) )
+        else if ( MarkDuplicatesForFlowHelper.isAdapterClipped(rec) )
             return true;
         else if ( !rec.getReadNegativeStrandFlag() )
             return rec.getEnd() != rec.getUnclippedEnd();

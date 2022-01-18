@@ -54,7 +54,7 @@ import java.util.Map;
         oneLineSummary = MarkDuplicates.USAGE_SUMMARY,
         programGroup = ReadDataManipulationProgramGroup.class)
 @DocumentedFeature
-public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
+public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram implements MarkDuplicatesHelper {
     static final String USAGE_SUMMARY = "Identifies duplicate reads.  ";
     static final String USAGE_DETAILS = "<p>This tool locates and tags duplicate reads in a SAM, BAM or CRAM file, where duplicate reads are " +
             "defined as originating from a single fragment of DNA.  Duplicates can arise during sample preparation e.g. library " +
@@ -216,11 +216,45 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
             "the BARCODE_TAG option be set to a non null value.  Default null.", optional = true)
     public String MOLECULAR_IDENTIFIER_TAG = null;
 
+    @Argument(doc = "enable parameters and behavior specific to flow based reads.", optional = true)
+    public boolean FLOW_MODE = false;
+
+    @Argument(doc = "Use specific quality summing strategy for flow based reads. The strategy ensures that the same " +
+            "(and correct) quality value is used for all bases of the same homopolymer.", optional = true)
+    public boolean FLOW_QUALITY_SUM_STRATEGY = false;
+
+    @Argument(doc = "Make the end location of single end read be significant when considering duplicates, " +
+            "in addition to the start location, which is always significant (i.e. require single end reads to start and" +
+            "end on the same position to be considered duplicate).", optional = true)
+    public boolean USE_END_IN_UNPAIRED_READS = false;
+
+    @Argument(doc = "Use position of the clipping as the end position, when considering duplicates (or use the unclipped end position).", optional = true)
+    public boolean USE_UNPAIRED_CLIPPED_END = false;
+
+    @Argument(doc = "Maximal difference of the read end position that counted as equal. Useful for flow based " +
+            "reads where the end position might vary due to sequencing errors.", optional = true)
+    public int UNPAIRED_END_UNCERTAINTY = 0;
+
+    @Argument(doc = "Skip first N flows, when considering duplicates. Useful for flow based reads where sometimes there " +
+            "is noise in the first flows.", optional = true)
+    public int FLOW_SKIP_FIRST_N_FLOWS = 0;
+
+    @Argument(doc = "Treat position of read trimming based on quality as the known end (relevant for flow based reads). Default false - if the read " +
+            "is trimmed on quality its end is not defined and the read is duplicate with any read starting at the same place.", optional = true)
+    public boolean FLOW_Q_IS_KNOWN_END = false;
+
+    @Argument(doc = "Threshold for considering a quality value high enough to be included when calculating FLOW_QUALITY_SUM_STRATEGY calculation.", optional = true)
+    public int FLOW_EFFECTIVE_QUALITY_THRESHOLD = 15;
+
     protected SortingCollection<ReadEndsForMarkDuplicates> pairSort;
     protected SortingCollection<ReadEndsForMarkDuplicates> fragSort;
     protected SortingLongCollection duplicateIndexes;
     protected SortingLongCollection opticalDuplicateIndexes;
     protected SortingCollection<RepresentativeReadIndexer> representativeReadIndicesForDuplicates;
+
+    // some calculations are performed using a helper class, which can be parameter specific
+    // by default, this instance is the helper
+    private MarkDuplicatesHelper calcHelper = this;
 
     private int numDuplicateIndices = 0;
     static private final long NO_SUCH_INDEX = Long.MAX_VALUE; // needs to be large so that that >= test fails for query-sorted traversal
@@ -252,11 +286,17 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
         final boolean useBarcodes = (null != BARCODE_TAG || null != READ_ONE_BARCODE_TAG || null != READ_TWO_BARCODE_TAG);
 
+        // use flow based calculation helper?
+        if ( FLOW_MODE ) {
+            calcHelper = new MarkDuplicatesForFlowHelper(this);
+        }
+
+
         reportMemoryStats("Start of doWork");
         log.info("Reading input file and constructing read end information.");
         buildSortedReadEndLists(useBarcodes);
         reportMemoryStats("After buildSortedReadEndLists");
-        generateDuplicateIndexes(useBarcodes, this.REMOVE_SEQUENCING_DUPLICATES || this.TAGGING_POLICY != DuplicateTaggingPolicy.DontTag);
+        calcHelper.generateDuplicateIndexes(useBarcodes, this.REMOVE_SEQUENCING_DUPLICATES || this.TAGGING_POLICY != DuplicateTaggingPolicy.DontTag);
 
         reportMemoryStats("After generateDuplicateIndexes");
         log.info("Marking " + this.numDuplicateIndices + " records as duplicates.");
@@ -548,7 +588,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
 
             } else if (!rec.isSecondaryOrSupplementary()) {
                 final long indexForRead = assumedSortOrder == SAMFileHeader.SortOrder.queryname ? duplicateIndex : index;
-                final ReadEndsForMarkDuplicates fragmentEnd = buildReadEnds(header, indexForRead, rec, useBarcodes);
+                final ReadEndsForMarkDuplicates fragmentEnd = calcHelper.buildReadEnds(header, indexForRead, rec, useBarcodes);
                 this.fragSort.add(fragmentEnd);
 
                 if (rec.getReadPairedFlag() && !rec.getMateUnmappedFlag()) {
@@ -612,7 +652,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
                                     pairedEnds.orientation == ReadEnds.R);
                         }
 
-                        updatePairedEndsScore(rec, pairedEnds);
+                        calcHelper.updatePairedEndsScore(rec, pairedEnds);
                         this.pairSort.add(pairedEnds);
                     }
                 }
@@ -636,7 +676,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     /**
      * update score for pairedEnds
      */
-    protected void updatePairedEndsScore(SAMRecord rec, ReadEndsForMarkDuplicates pairedEnds) {
+    public void updatePairedEndsScore(SAMRecord rec, ReadEndsForMarkDuplicates pairedEnds) {
         pairedEnds.score += DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
     }
 
@@ -644,7 +684,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
     /**
      * Builds a read ends object that represents a single read.
      */
-    protected ReadEndsForMarkDuplicates buildReadEnds(final SAMFileHeader header, final long index, final SAMRecord rec, final boolean useBarcodes) {
+    public ReadEndsForMarkDuplicates buildReadEnds(final SAMFileHeader header, final long index, final SAMRecord rec, final boolean useBarcodes) {
         final ReadEndsForMarkDuplicates ends;
 
         if (useBarcodes) {
@@ -703,7 +743,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram {
      * Goes through the accumulated ReadEndsForMarkDuplicates objects and determines which of them are
      * to be marked as duplicates.
      */
-    protected void generateDuplicateIndexes(final boolean useBarcodes, final boolean indexOpticalDuplicates) {
+    public void generateDuplicateIndexes(final boolean useBarcodes, final boolean indexOpticalDuplicates) {
         final int entryOverhead;
         if (TAG_DUPLICATE_SET_MEMBERS) {
             // Memory requirements for RepresentativeReadIndexer:

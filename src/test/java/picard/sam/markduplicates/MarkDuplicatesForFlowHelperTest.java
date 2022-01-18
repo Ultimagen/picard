@@ -24,24 +24,20 @@
 
 package picard.sam.markduplicates;
 
-import htsjdk.samtools.*;
-import htsjdk.samtools.util.CloserUtil;
-import htsjdk.samtools.util.CollectionUtil;
-import htsjdk.samtools.util.IOUtil;
-import htsjdk.samtools.util.IterableAdapter;
+import htsjdk.samtools.DuplicateScoringStrategy;
+import htsjdk.samtools.SAMRecord;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
-import java.util.*;
 
 /**
  * This class defines the individual test cases to run. The actual running of the test is done
  * by MarkDuplicatesTester (see getTester).
  */
-public class MarkDuplicatesForFlowTest  {
+public class MarkDuplicatesForFlowHelperTest {
     protected static String TEST_BASE_NAME = null;
     protected static File TEST_DATA_DIR = null;
     final static String   FLOW_ORDER = "TGCA";
@@ -49,12 +45,12 @@ public class MarkDuplicatesForFlowTest  {
 
     @BeforeClass
     public void setUp() {
-        TEST_BASE_NAME = "MarkDuplicatesForFlow";
+        TEST_BASE_NAME = "MarkDuplicatesForFlowHelper";
         TEST_DATA_DIR = new File("testdata/picard/sam/MarkDuplicates");
     }
 
     protected AbstractMarkDuplicatesCommandLineProgramTester getTester() {
-        return new MarkDuplicatesForFlowTester();
+        return new MarkDuplicatesTester();
     }
 
     private interface TesterModifier {
@@ -209,7 +205,7 @@ public class MarkDuplicatesForFlowTest  {
 
         // get tester, build records
         final AbstractMarkDuplicatesCommandLineProgramTester tester =
-                scoringStrategy == null ? getTester() : new MarkDuplicatesForFlowTester(scoringStrategy);
+                scoringStrategy == null ? getTester() : new MarkDuplicatesTester(scoringStrategy);
         for ( final TestRecordInfo info : recInfos ) {
             tester.getSamRecordSetBuilder().setReadLength(info.length);
             if ( info.cigar != null ) {
@@ -234,6 +230,7 @@ public class MarkDuplicatesForFlowTest  {
         }
 
         // add parames, set flow order
+        tester.addArg("FLOW_MODE=true");
         for ( final String param : params ) {
             tester.addArg(param);
         }
@@ -272,7 +269,7 @@ public class MarkDuplicatesForFlowTest  {
         System.arraycopy(quals, 0, rec.getBaseQualities(), 0, quals.length);
 
         // calculate score
-        final int score = MarkDuplicatesForFlow.getFlowSumOfBaseQualities(rec, threshold);
+        final int score = MarkDuplicatesForFlowHelper.getFlowSumOfBaseQualities(rec, threshold);
         Assert.assertEquals(score, expectedScore);
     }
 
