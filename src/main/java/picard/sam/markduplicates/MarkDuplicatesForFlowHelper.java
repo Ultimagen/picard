@@ -223,7 +223,7 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
     /**
      * A quality summing scoring strategy used for flow based reads.
      *
-     * The method walks on the bases of the read, in the synthesis direction. The each base, the effective
+     * The method walks on the bases of the read, in the synthesis direction. For each base, the effective
      * quality value is defined as the value on the first base on the hmer to which the base belongs to. The score
      * is defined to be the sum of all effective values above a given threshold.
      *
