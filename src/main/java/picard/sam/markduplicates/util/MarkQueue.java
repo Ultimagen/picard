@@ -56,6 +56,7 @@ public class MarkQueue {
             int retval = lhs.libraryId - rhs.libraryId;
             if (retval == 0) retval = lhs.read1ReferenceIndex - rhs.read1ReferenceIndex;
             if (retval == 0) retval = lhs.read1Coordinate - rhs.read1Coordinate;
+            if (retval == 0) retval = lhs.read1Coordinate2 - rhs.read1Coordinate2;
             if (retval == 0) retval = rhs.orientation - lhs.orientation; // to get pairs first, based on the order defined in ReadEnds
             if (retval == 0) retval = lhs.read2ReferenceIndex - rhs.read2ReferenceIndex;
             if (retval == 0) retval = lhs.read2Coordinate - rhs.read2Coordinate;
@@ -78,6 +79,7 @@ public class MarkQueue {
             int retval = lhs.libraryId - rhs.libraryId;
             if (retval == 0) retval = lhs.read1ReferenceIndex - rhs.read1ReferenceIndex;
             if (retval == 0) retval = lhs.read1Coordinate - rhs.read1Coordinate;
+            if (retval == 0) retval = lhs.read1Coordinate2 - rhs.read1Coordinate2;
             if (retval == 0) retval = rhs.orientation - lhs.orientation; // IMPORTANT: reverse the order to get pairs first
             if (retval == 0 && lhs.isPaired() != rhs.isPaired()) return lhs.isPaired() ? -1 : 1; // unpaired goes first, based on the order defined in ReadEnds
             if (retval == 0) retval = lhs.hasUnmapped - rhs.hasUnmapped;

@@ -40,6 +40,7 @@ import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.CoordMath;
 import htsjdk.samtools.util.Histogram;
 import htsjdk.samtools.util.SequenceUtil;
+import htsjdk.samtools.util.StringUtil;
 import picard.metrics.PerUnitMetricCollector;
 import picard.metrics.SAMRecordAndReference;
 import picard.metrics.SAMRecordAndReferenceMultiLevelCollector;
@@ -285,6 +286,7 @@ public class AlignmentSummaryMetricsCollector extends SAMRecordAndReferenceMulti
                     metrics.PCT_PF_READS_ALIGNED = MathUtil.divide(metrics.PF_READS_ALIGNED, (double) metrics.PF_READS);
                     metrics.PCT_READS_ALIGNED_IN_PAIRS = MathUtil.divide(metrics.READS_ALIGNED_IN_PAIRS, (double) metrics.PF_READS_ALIGNED);
                     metrics.PCT_PF_READS_IMPROPER_PAIRS = MathUtil.divide(metrics.PF_READS_IMPROPER_PAIRS, (double) metrics.PF_READS_ALIGNED);
+                    metrics.MEAN_ALIGNED_READ_LENGTH = alignedReadLengthHistogram.getMean();
                     metrics.STRAND_BALANCE = MathUtil.divide(numPositiveStrand, (double) metrics.PF_READS_ALIGNED);
                     metrics.PCT_CHIMERAS = MathUtil.divide(chimeras, (double) chimerasDenominator);
                     metrics.PF_INDEL_RATE = MathUtil.divide(indels, (double) metrics.PF_ALIGNED_BASES);
@@ -478,6 +480,7 @@ public class AlignmentSummaryMetricsCollector extends SAMRecordAndReferenceMulti
             return !record.getReadFailsVendorQualityCheckFlag() &&
                     record.getMappingQuality() >= MAPPING_QUALITY_THRESHOLD;
         }
+
 
         public AlignmentSummaryMetrics getMetrics() {
             return metrics;

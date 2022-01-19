@@ -26,10 +26,10 @@ package picard.analysis;
 
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.SAMRecord;
-import htsjdk.samtools.metrics.MetricBase;
 import htsjdk.samtools.metrics.MetricsFile;
 import htsjdk.samtools.reference.ReferenceSequence;
 import htsjdk.samtools.util.IOUtil;
+import org.apache.commons.lang.ArrayUtils;
 import org.broadinstitute.barclay.argparser.Argument;
 import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
 import org.broadinstitute.barclay.help.DocumentedFeature;
@@ -131,15 +131,20 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         // of bases if there are supplemental alignments in the input file.
         public final boolean includeSupplementalAlignments;
 
+        private boolean isSingleEnded;
+        private final HistogramGenerator histogramGenerator;
+
         // The metrics to be accumulated
         private final QualityYieldMetrics metrics = new QualityYieldMetrics();
 
         public QualityYieldMetricsCollector(final boolean useOriginalQualities,
                                             final boolean includeSecondaryAlignments,
                                             final boolean includeSupplementalAlignments) {
+            this.histogramGenerator = new HistogramGenerator(useOriginalQualities);
             this.useOriginalQualities = useOriginalQualities;
             this.includeSecondaryAlignments = includeSecondaryAlignments;
             this.includeSupplementalAlignments = includeSupplementalAlignments;
+            this.isSingleEnded = true;
         }
 
         public void acceptRecord(final SAMRecord rec, final ReferenceSequence ref) {
@@ -186,6 +191,13 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
                     }
                 }
             }
+            if (rec.getReadNegativeStrandFlag()) {
+                ArrayUtils.reverse(quals);
+            }
+            histogramGenerator.addRecord(rec);
+            if (rec.getReadPairedFlag()){
+                isSingleEnded = false;
+            }
         }
 
         public void finish() {
@@ -193,11 +205,19 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             metrics.PF_Q20_EQUIVALENT_YIELD = metrics.PF_Q20_EQUIVALENT_YIELD / 20;
 
             metrics.calculateDerivedFields();
+            // these metrics were added specifically for flow based reads and to avoid clutter we calculate it only on single
+            // ended reads
+            if (isSingleEnded) {
+                metrics.READ_LENGTH_AVG_Q_ABOVE_30 = histogramGenerator.calculateLQ(30, 1, 5);
+                metrics.READ_LENGTH_AVG_Q_ABOVE_25 = histogramGenerator.calculateLQ(25, 1, 5);
+            }
+
         }
 
         public void addMetricsToFile(final MetricsFile<QualityYieldMetrics, Integer> metricsFile) {
             metricsFile.addMetric(metrics);
         }
+
     }
 
     /**
@@ -218,7 +238,7 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         public long PF_READS = 0;
 
         /**
-         * The average read length of all the reads (will be fixed for a lane)
+         * The average read length of all the reads
          */
         @NoMergingIsDerived
         public int READ_LENGTH = 0;
@@ -277,6 +297,43 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
 
             this.READ_LENGTH = this.TOTAL_READS == 0 ? 0 : (int) (this.TOTAL_BASES / this.TOTAL_READS);
         }
+
+        /** The length of the longest interval on the reads where the average quaility per-base is above (Q30) */
+        @NoMergingIsDerived
+        public long READ_LENGTH_AVG_Q_ABOVE_30 = 0;
+
+        /** The length of the longest interval on the reads where the average quaility per-base is above (Q25) */
+        @NoMergingIsDerived
+        public long READ_LENGTH_AVG_Q_ABOVE_25 = 0;
+
+        @Override
+        public MergeableMetricBase merge(final MergeableMetricBase other) {
+            final long                        totalReadsbeforeMerge = TOTAL_READS;
+            final MergeableMetricBase         m = super.merge(other);
+
+            // merge average fields
+            if ( (m instanceof QualityYieldMetrics) && (other instanceof QualityYieldMetrics) ) {
+
+                final QualityYieldMetrics     o = (QualityYieldMetrics)other;
+
+                // worth doing only if there are reads on the other matrix
+                if ( o.TOTAL_READS != 0 ) {
+                    final QualityYieldMetrics     dst = (QualityYieldMetrics)m;
+
+                    dst.READ_LENGTH_AVG_Q_ABOVE_30 =
+                            ((READ_LENGTH_AVG_Q_ABOVE_30 * totalReadsbeforeMerge)
+                                    + (o.READ_LENGTH_AVG_Q_ABOVE_30 * o.TOTAL_READS))
+                                    / (totalReadsbeforeMerge + o.TOTAL_READS);
+                    dst.READ_LENGTH_AVG_Q_ABOVE_25 =
+                            ((READ_LENGTH_AVG_Q_ABOVE_25 * totalReadsbeforeMerge)
+                                    + (o.READ_LENGTH_AVG_Q_ABOVE_25 * o.TOTAL_READS))
+                                    / (totalReadsbeforeMerge + o.TOTAL_READS);
+                }
+            }
+
+            return m;
+        }
+
     }
 
 }
