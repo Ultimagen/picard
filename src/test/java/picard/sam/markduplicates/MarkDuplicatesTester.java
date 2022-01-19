@@ -33,11 +33,8 @@ import picard.cmdline.CommandLineProgram;
  */
 public class MarkDuplicatesTester extends AbstractMarkDuplicatesCommandLineProgramTester {
 
-    public MarkDuplicatesTester(DuplicateScoringStrategy.ScoringStrategy strategy) {
-        super(strategy);
-    }
     public MarkDuplicatesTester() {
-        this(DuplicateScoringStrategy.ScoringStrategy.TOTAL_MAPPED_REFERENCE_LENGTH);
+        super(DuplicateScoringStrategy.ScoringStrategy.TOTAL_MAPPED_REFERENCE_LENGTH);
     }
 
     @Override
