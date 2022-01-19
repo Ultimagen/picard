@@ -205,9 +205,11 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             metrics.PF_Q20_EQUIVALENT_YIELD = metrics.PF_Q20_EQUIVALENT_YIELD / 20;
 
             metrics.calculateDerivedFields();
+            // these metrics were added specifically for flow based reads and to avoid clutter we calculate it only on single
+            // ended reads
             if (isSingleEnded) {
-                metrics.AVG_READ_LENGTH_Q_BELOW_30 = histogramGenerator.calculateLQ(30, 1, 5);
-                metrics.AVG_READ_LENGTH_Q_BELOW_25 = histogramGenerator.calculateLQ(25, 1, 5);
+                metrics.READ_LENGTH_AVG_Q_ABOVE_30 = histogramGenerator.calculateLQ(30, 1, 5);
+                metrics.READ_LENGTH_AVG_Q_ABOVE_25 = histogramGenerator.calculateLQ(25, 1, 5);
             }
 
         }
@@ -296,13 +298,13 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             this.READ_LENGTH = this.TOTAL_READS == 0 ? 0 : (int) (this.TOTAL_BASES / this.TOTAL_READS);
         }
 
-        /** The average read length until the average base quality is below 30 - only for single end reads */
+        /** The length of the longest interval on the reads where the average quaility per-base is above (Q30) */
         @NoMergingIsDerived
-        public long AVG_READ_LENGTH_Q_BELOW_30 = 0;
+        public long READ_LENGTH_AVG_Q_ABOVE_30 = 0;
 
-        /** The average read length until the average base quality is below 25 - only for single end reads */
+        /** The length of the longest interval on the reads where the average quaility per-base is above (Q25) */
         @NoMergingIsDerived
-        public long AVG_READ_LENGTH_Q_BELOW_25 = 0;
+        public long READ_LENGTH_AVG_Q_ABOVE_25 = 0;
 
         @Override
         public MergeableMetricBase merge(final MergeableMetricBase other) {
@@ -318,13 +320,13 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
                 if ( o.TOTAL_READS != 0 ) {
                     final QualityYieldMetrics     dst = (QualityYieldMetrics)m;
 
-                    dst.AVG_READ_LENGTH_Q_BELOW_30 =
-                            ((AVG_READ_LENGTH_Q_BELOW_30 * totalReadsbeforeMerge)
-                                    + (o.AVG_READ_LENGTH_Q_BELOW_30 * o.TOTAL_READS))
+                    dst.READ_LENGTH_AVG_Q_ABOVE_30 =
+                            ((READ_LENGTH_AVG_Q_ABOVE_30 * totalReadsbeforeMerge)
+                                    + (o.READ_LENGTH_AVG_Q_ABOVE_30 * o.TOTAL_READS))
                                     / (totalReadsbeforeMerge + o.TOTAL_READS);
-                    dst.AVG_READ_LENGTH_Q_BELOW_25 =
-                            ((AVG_READ_LENGTH_Q_BELOW_25 * totalReadsbeforeMerge)
-                                    + (o.AVG_READ_LENGTH_Q_BELOW_25 * o.TOTAL_READS))
+                    dst.READ_LENGTH_AVG_Q_ABOVE_25 =
+                            ((READ_LENGTH_AVG_Q_ABOVE_25 * totalReadsbeforeMerge)
+                                    + (o.READ_LENGTH_AVG_Q_ABOVE_25 * o.TOTAL_READS))
                                     / (totalReadsbeforeMerge + o.TOTAL_READS);
                 }
             }

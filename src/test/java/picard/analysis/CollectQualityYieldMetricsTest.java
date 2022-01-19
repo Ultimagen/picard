@@ -33,7 +33,6 @@ import picard.cmdline.CommandLineProgramTest;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -65,8 +64,8 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
                                 Assert.assertEquals(metrics.PF_Q30_BASES, 5);
                                 Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 40);
                                 Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 27);
-                                Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_30, 0);
-                                Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_25, 0);
+                                Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_30, 0);
+                                Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_25, 0);
                             }
                         }
                 },
@@ -123,8 +122,8 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.PF_Q30_BASES, 3145);
         Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 6497);
         Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 6497);
-        Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_30, 0);
-        Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_25, 0);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_30, 0);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_25, 0);
     }
 
     @Test
@@ -157,8 +156,8 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.PF_Q30_BASES, 14786);
         Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 30589);
         Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 30589);
-        Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_30, 14);
-        Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_25, 119);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_30, 14);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_25, 119);
     }
 
     @Test
@@ -195,8 +194,8 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.PF_Q30_BASES, 3145);
         Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 6497);
         Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 6497);
-        Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_30, 0);
-        Assert.assertEquals(metrics.AVG_READ_LENGTH_Q_BELOW_25, 0);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_30, 0);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_25, 0);
     }
 
     @Test
@@ -205,8 +204,8 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         CollectQualityYieldMetrics.QualityYieldMetrics      m2 = createTestQualityYieldMetrics();
 
         // create test data for averaging fields
-        m2.AVG_READ_LENGTH_Q_BELOW_30 *= 3;
-        m2.AVG_READ_LENGTH_Q_BELOW_25 *= 3;
+        m2.READ_LENGTH_AVG_Q_ABOVE_30 *= 3;
+        m2.READ_LENGTH_AVG_Q_ABOVE_25 *= 3;
 
         m1.merge(m2);
 
@@ -219,8 +218,8 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(m1.Q30_BASES, m2.Q30_BASES * 2);
         Assert.assertEquals(m1.PF_Q30_BASES, m2.PF_Q30_BASES * 2);
         Assert.assertEquals(m1.Q20_EQUIVALENT_YIELD, m2.Q20_EQUIVALENT_YIELD * 2);
-        Assert.assertEquals(m1.AVG_READ_LENGTH_Q_BELOW_30, m2.AVG_READ_LENGTH_Q_BELOW_30 * 2 / 3);
-        Assert.assertEquals(m1.AVG_READ_LENGTH_Q_BELOW_25, m2.AVG_READ_LENGTH_Q_BELOW_25 * 2 / 3);
+        Assert.assertEquals(m1.READ_LENGTH_AVG_Q_ABOVE_30, m2.READ_LENGTH_AVG_Q_ABOVE_30 * 2 / 3);
+        Assert.assertEquals(m1.READ_LENGTH_AVG_Q_ABOVE_25, m2.READ_LENGTH_AVG_Q_ABOVE_25 * 2 / 3);
     }
 
     private CollectQualityYieldMetrics.QualityYieldMetrics createTestQualityYieldMetrics() {
@@ -238,8 +237,8 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         m.PF_Q30_BASES = 3145;
         m.Q20_EQUIVALENT_YIELD = 6497;
         m.PF_Q20_EQUIVALENT_YIELD = 6497;
-        m.AVG_READ_LENGTH_Q_BELOW_30 = 100;
-        m.AVG_READ_LENGTH_Q_BELOW_25 = 200;
+        m.READ_LENGTH_AVG_Q_ABOVE_30 = 100;
+        m.READ_LENGTH_AVG_Q_ABOVE_25 = 200;
 
         return m;
     }
