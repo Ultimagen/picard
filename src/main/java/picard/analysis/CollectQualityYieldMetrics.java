@@ -296,40 +296,12 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         }
 
         /** The length of the longest interval on the reads where the average quaility per-base is above (Q30) */
-        @MergingIsManual
+        @NoMergingKeepsValue
         public long READ_LENGTH_AVG_Q_ABOVE_30 = 0;
 
         /** The length of the longest interval on the reads where the average quaility per-base is above (Q25) */
-        @MergingIsManual
+        @NoMergingKeepsValue
         public long READ_LENGTH_AVG_Q_ABOVE_25 = 0;
-
-        @Override
-        public MergeableMetricBase merge(final MergeableMetricBase other) {
-            final long                        totalReadsbeforeMerge = TOTAL_READS;
-            final MergeableMetricBase         m = super.merge(other);
-
-            // merge average fields
-            if ( (m instanceof QualityYieldMetrics) && (other instanceof QualityYieldMetrics) ) {
-
-                final QualityYieldMetrics     o = (QualityYieldMetrics)other;
-
-                // worth doing only if there are reads on the other matrix
-                if ( o.TOTAL_READS != 0 ) {
-                    final QualityYieldMetrics     dst = (QualityYieldMetrics)m;
-
-                    dst.READ_LENGTH_AVG_Q_ABOVE_30 =
-                            ((READ_LENGTH_AVG_Q_ABOVE_30 * totalReadsbeforeMerge)
-                                    + (o.READ_LENGTH_AVG_Q_ABOVE_30 * o.TOTAL_READS))
-                                    / (totalReadsbeforeMerge + o.TOTAL_READS);
-                    dst.READ_LENGTH_AVG_Q_ABOVE_25 =
-                            ((READ_LENGTH_AVG_Q_ABOVE_25 * totalReadsbeforeMerge)
-                                    + (o.READ_LENGTH_AVG_Q_ABOVE_25 * o.TOTAL_READS))
-                                    / (totalReadsbeforeMerge + o.TOTAL_READS);
-                }
-            }
-
-            return m;
-        }
 
     }
 
