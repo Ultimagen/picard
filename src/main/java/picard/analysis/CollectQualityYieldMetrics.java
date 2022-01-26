@@ -296,11 +296,11 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         }
 
         /** The length of the longest interval on the reads where the average quaility per-base is above (Q30) */
-        @NoMergingIsDerived
+        @MergingIsManual
         public long READ_LENGTH_AVG_Q_ABOVE_30 = 0;
 
         /** The length of the longest interval on the reads where the average quaility per-base is above (Q25) */
-        @NoMergingIsDerived
+        @MergingIsManual
         public long READ_LENGTH_AVG_Q_ABOVE_25 = 0;
 
         @Override

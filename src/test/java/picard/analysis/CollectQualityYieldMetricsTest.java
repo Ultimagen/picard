@@ -203,9 +203,6 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         CollectQualityYieldMetrics.QualityYieldMetrics      m1 = createTestQualityYieldMetrics();
         CollectQualityYieldMetrics.QualityYieldMetrics      m2 = createTestQualityYieldMetrics();
 
-        // create test data for averaging fields
-        m2.READ_LENGTH_AVG_Q_ABOVE_30 *= 3;
-        m2.READ_LENGTH_AVG_Q_ABOVE_25 *= 3;
 
         m1.merge(m2);
 
@@ -218,8 +215,6 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(m1.Q30_BASES, m2.Q30_BASES * 2);
         Assert.assertEquals(m1.PF_Q30_BASES, m2.PF_Q30_BASES * 2);
         Assert.assertEquals(m1.Q20_EQUIVALENT_YIELD, m2.Q20_EQUIVALENT_YIELD * 2);
-        Assert.assertEquals(m1.READ_LENGTH_AVG_Q_ABOVE_30, m2.READ_LENGTH_AVG_Q_ABOVE_30 * 2 / 3);
-        Assert.assertEquals(m1.READ_LENGTH_AVG_Q_ABOVE_25, m2.READ_LENGTH_AVG_Q_ABOVE_25 * 2 / 3);
     }
 
     private CollectQualityYieldMetrics.QualityYieldMetrics createTestQualityYieldMetrics() {
