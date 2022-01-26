@@ -144,7 +144,7 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
             this.useOriginalQualities = useOriginalQualities;
             this.includeSecondaryAlignments = includeSecondaryAlignments;
             this.includeSupplementalAlignments = includeSupplementalAlignments;
-            this.isSingleEnded = true;
+            this.isSingleEnded = true; // assume single ended reads until proven otherwise
         }
 
         public void acceptRecord(final SAMRecord rec, final ReferenceSequence ref) {
@@ -190,9 +190,6 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
                         metrics.PF_Q20_BASES++;
                     }
                 }
-            }
-            if (rec.getReadNegativeStrandFlag()) {
-                ArrayUtils.reverse(quals);
             }
             histogramGenerator.addRecord(rec);
             if (rec.getReadPairedFlag()){

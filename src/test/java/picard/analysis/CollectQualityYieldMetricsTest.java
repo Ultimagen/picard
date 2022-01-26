@@ -156,8 +156,8 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.PF_Q30_BASES, 14786);
         Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 30589);
         Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 30589);
-        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_30, 14);
-        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_25, 119);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_30, 101);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_25, 195);
     }
 
     @Test
