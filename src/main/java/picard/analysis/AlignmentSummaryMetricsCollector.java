@@ -480,7 +480,6 @@ public class AlignmentSummaryMetricsCollector extends SAMRecordAndReferenceMulti
                     record.getMappingQuality() >= MAPPING_QUALITY_THRESHOLD;
         }
 
-
         public AlignmentSummaryMetrics getMetrics() {
             return metrics;
         }

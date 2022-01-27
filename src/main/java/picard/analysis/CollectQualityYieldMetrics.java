@@ -224,11 +224,11 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
     }
 
     public static class QualityYieldMetricsFlow extends QualityYieldMetrics{
-        /** The length of the longest interval on the reads where the average quaility per-base is above (Q30) */
+        /** The length of the longest interval on the reads where the average quality per-base is above (Q30) */
         @NoMergingKeepsValue
         public long READ_LENGTH_AVG_Q_ABOVE_30 = 0;
 
-        /** The length of the longest interval on the reads where the average quaility per-base is above (Q25) */
+        /** The length of the longest interval on the reads where the average quality per-base is above (Q25) */
         @NoMergingKeepsValue
         public long READ_LENGTH_AVG_Q_ABOVE_25 = 0;
 
@@ -310,7 +310,6 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
 
             this.READ_LENGTH = this.TOTAL_READS == 0 ? 0 : (int) (this.TOTAL_BASES / this.TOTAL_READS);
         }
-
 
     }
 

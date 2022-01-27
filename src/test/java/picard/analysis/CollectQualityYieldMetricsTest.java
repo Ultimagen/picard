@@ -85,7 +85,7 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, ?> output = new MetricsFile<>();
         output.read(new FileReader(outfile));
 
-        Assert.assertEquals(output.getMetrics().size(),1);
+        Assert.assertEquals(output.getMetrics().size(), 1);
 
         final CollectQualityYieldMetrics.QualityYieldMetrics metrics = output.getMetrics().get(0);
         metricsConsumer.accept(metrics);
@@ -123,7 +123,7 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
     }
 
     @Test
-    public void testSubsample() throws IOException {
+    public void testFlowMode() throws IOException {
         final File input = new File(TEST_DATA_DIR, "subsample.bam");
         final File outfile   = File.createTempFile("test", ".quality_yield_metrics");
         outfile.deleteOnExit();
@@ -229,6 +229,5 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         m.PF_Q20_EQUIVALENT_YIELD = 6497;
         return m;
     }
-
 
 }

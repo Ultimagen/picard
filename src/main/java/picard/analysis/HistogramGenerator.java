@@ -1,7 +1,7 @@
 /*
  * The MIT License
  *
- * Copyright (c) 2009 The Broad Institute
+ * Copyright (c) 2022 The Broad Institute
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -148,29 +148,25 @@ public final class HistogramGenerator {
         }
     }
 
-    private int longestHighQuality(List<Double> result, double errorProbThreshold){
-        int curBestStart = 0;
-        int curBestEnd = 0;
+    private int longestHighQuality(List<Double> averageErrorProbabilities, double errorProbThreshold){
         int curStart = 0;
         int curEnd = 0;
+        int curBestIntervalLength = 0;
 
-        while ( (curStart <result.size()) && (curEnd < result.size()) ){
-            if (result.get(curEnd) < errorProbThreshold){
+        while ( curEnd < averageErrorProbabilities.size() ) {
+            if (averageErrorProbabilities.get(curEnd) <= errorProbThreshold) {
                 curEnd++;
             } else {
-                if ((curEnd - curStart) > (curBestEnd - curBestStart)){
-                    curBestStart = curStart;
-                    curBestEnd = curEnd;
+                if ((curEnd - curStart) > curBestIntervalLength) {
+                    curBestIntervalLength = curEnd - curStart;
                 }
-                curStart = curEnd+1;
+                curStart = curEnd + 1;
                 curEnd = curStart;
             }
         }
-        if ((curEnd-curStart) > (curBestEnd-curBestStart)){
-            curBestStart = curStart;
-            curBestEnd = curEnd;
+        if ((curEnd - curStart) > curBestIntervalLength) {
+            curBestIntervalLength = curEnd - curStart;
         }
-        int lhq = curBestEnd - curBestStart;
-        return lhq;
+        return curBestIntervalLength;
     }
 }
