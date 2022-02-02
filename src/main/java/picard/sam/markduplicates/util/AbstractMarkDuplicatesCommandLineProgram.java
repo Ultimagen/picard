@@ -219,8 +219,9 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
             ++metrics.SECONDARY_OR_SUPPLEMENTARY_RDS;
         } else if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
             ++metrics.UNPAIRED_READS_EXAMINED;
-            if ( isSingleEndReadKnownFragment(rec) )
+            if ( isSingleEndReadKnownFragment(rec) ) {
                 ++metrics.UNPAIRED_WITH_TLEN;
+            }
         } else {
             ++metrics.READ_PAIRS_EXAMINED; // will need to be divided by 2 at the end
         }
@@ -234,10 +235,11 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
             if (!rec.getReadPairedFlag() || rec.getMateUnmappedFlag()) {
                 ++metrics.UNPAIRED_READ_DUPLICATES;
 
-                if ( isSingleEndReadKnownFragment(rec) )
+                if ( isSingleEndReadKnownFragment(rec) ) {
                     ++metrics.UNPAIRED_DUPS_WITH_TLEN;
-                else
+                } else {
                     ++metrics.UNPAIRED_DUPS_WITHOUT_TLEN;
+                }
             } else {
                 ++metrics.READ_PAIR_DUPLICATES;// will need to be divided by 2 at the end
             }
@@ -246,21 +248,22 @@ public abstract class AbstractMarkDuplicatesCommandLineProgram extends AbstractO
 
     /**
      * This method is used to generate the following two metrics:
-     * SINGLE_END_READS_DUPLICATES_KNOWN_FRAGMENT_LENGTH
-     * SINGLE_END_READS_DUPLICATES_UNKNOWN_FRAGMENT_LENGTH
+     * UNPAIRED_DUPS_WITH_TLEN
+     * UNPAIRED_DUPS_WITHOUT_TLEN
      *
      * It will return true if and only if the read is single ended and the exact fragment length is
      *  known (i.e. it was not quality trimmed)
      */
     private static boolean isSingleEndReadKnownFragment(final SAMRecord rec) {
-        if ( rec.getReadUnmappedFlag() || rec.getReadPairedFlag() )
+        if ( rec.getReadUnmappedFlag() || rec.getReadPairedFlag() ) {
             return false;
-        else if ( MarkDuplicatesForFlowHelper.isAdapterClipped(rec) )
+        } else if ( MarkDuplicatesForFlowHelper.isAdapterClipped(rec) ) {
             return true;
-        else if ( !rec.getReadNegativeStrandFlag() )
+        } else if ( !rec.getReadNegativeStrandFlag() ) {
             return rec.getEnd() != rec.getUnclippedEnd();
-        else
+        } else {
             return rec.getStart() != rec.getUnclippedStart();
+        }
     }
 
     /**

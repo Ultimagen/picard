@@ -22,25 +22,34 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
 
     private final Log log = Log.getInstance(MarkDuplicatesForFlowHelper.class);
 
-    private static  final int END_INSIGNIFICANT_VALUE = 0;
+    private static final int END_INSIGNIFICANT_VALUE = 0;
     private static final String ATTR_DUPLICATE_SCORE = "ForFlowDuplicateScore";
 
     // constants for clippingTagContains
-    public static String        CLIPPING_TAG_NAME = "tm";
+    public static final String CLIPPING_TAG_NAME = "tm";
     public static final char[]  CLIPPING_TAG_CONTAINS_A = {'A'};
     public static final char[]  CLIPPING_TAG_CONTAINS_AQ = {'A', 'Q'};
     public static final char[]  CLIPPING_TAG_CONTAINS_QZ = {'Q', 'Z'};
 
     // instance of hosting MarkDuplicates
-    private MarkDuplicates  md;
+    private final MarkDuplicates  md;
 
-    public MarkDuplicatesForFlowHelper(MarkDuplicates md) {
+    public MarkDuplicatesForFlowHelper(final MarkDuplicates md) {
         this.md = md;
+
+        validateFlowParameteres();
+    }
+
+    private void validateFlowParameteres() {
+
+        if ( md.fbArgs.UNPAIRED_END_UNCERTAINTY != 0 && !md.fbArgs.USE_END_IN_UNPAIRED_READS ) {
+            throw new IllegalArgumentException("invalid parameter combination. UNPAIRED_END_UNCERTAINTY can not be specified when USE_END_IN_UNPAIRED_READS not specified");
+        }
     }
 
     /**
      * This method is identical in function to generateDuplicateIndexes except that it accomodates for
-     * the possible significance of the end side of the reads (w/ or wo/ uncertainty). This is only
+     * the possible significance of the end side of the reads (w/ or w/o uncertainty). This is only
      * applicable for flow mode invocation.
      */
     public void generateDuplicateIndexes(final boolean useBarcodes, final boolean indexOpticalDuplicates) {
@@ -70,47 +79,33 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
                     md.TMP_DIR);
         }
 
+        // this code does support pairs at this time
+        if ( md.pairSort.iterator().hasNext() ) {
+            throw new IllegalArgumentException("flow based code does not support paired reads");
+        }
+        md.pairSort.cleanup();
+        md.pairSort = null;
+
+        /**
+         *  Now deal with the fragments
+         *
+         *  The end processing semantics depends on the following factors:
+         *  1. Whether the end is marked as significant (as specified by USE_END_IN_UNPAIRED_READS)
+         *  2. Whether end certainty is specified (by UNPAIRED_END_UNCERTAINTY)
+         *
+         *  - If ends are insignificant, they are ignored
+         *  - If ends are significant and uncertainty is set to 0 - they number be equal on fragments to be considered same
+         *  - Otherwise, fragments are accumulated (into the same bucket) as long as they are with the
+         *  specified uncertainty from at least one existing fragment. Note that using this strategy the effective
+         *  range of end locations associated with fragments in a bucket may grow, but only in 'uncertainty' steps.
+         */
+        log.info("Traversing fragment information and detecting duplicates.");
         ReadEndsForMarkDuplicates firstOfNextChunk = null;
         int nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
         int nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
         final List<ReadEndsForMarkDuplicates> nextChunk = new ArrayList<>(200);
-
-        // First just do the pairs
-        log.info("Traversing read pair information and detecting duplicates.");
-        for (final ReadEndsForMarkDuplicates next : md.pairSort) {
-            if (firstOfNextChunk != null && areComparableForDuplicatesWithEndSignificance(firstOfNextChunk, next, true, useBarcodes,
-                    nextChunkRead1Coordinate2Min, nextChunkRead1Coordinate2Max)) {
-                nextChunk.add(next);
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT_VALUE) {
-                    nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
-                    nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
-                }
-            } else {
-                md.handleChunk(nextChunk);
-                nextChunk.clear();
-                nextChunk.add(next);
-                firstOfNextChunk = next;
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT_VALUE)
-                    nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
-                else {
-                    nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
-                    nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
-                }
-            }
-        }
-        md.handleChunk(nextChunk);
-
-        md.pairSort.cleanup();
-        md.pairSort = null;
-
-        // Now deal with the fragments
-        log.info("Traversing fragment information and detecting duplicates.");
         boolean containsPairs = false;
         boolean containsFrags = false;
-
-        firstOfNextChunk = null;
-        nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
-        nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
 
         for (final ReadEndsForMarkDuplicates next : md.fragSort) {
             if (firstOfNextChunk != null && areComparableForDuplicatesWithEndSignificance(firstOfNextChunk, next, false, useBarcodes,
@@ -170,12 +165,12 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
 
         // adjust start/end coordinates
         ends.read1Coordinate = getReadEndCoordinate(rec, !rec.getReadNegativeStrandFlag(), true);
-        if (md.USE_END_IN_UNPAIRED_READS) {
+        if (md.fbArgs.USE_END_IN_UNPAIRED_READS) {
             ends.read1Coordinate2 = getReadEndCoordinate(rec, rec.getReadNegativeStrandFlag(), false);
         }
 
         // adjust score
-        if ( md.FLOW_QUALITY_SUM_STRATEGY ) {
+        if ( md.fbArgs.FLOW_QUALITY_SUM_STRATEGY ) {
             ends.score = computeFlowDuplicateScore(rec, ends.read1Coordinate, ends.read1Coordinate2);
         }
 
@@ -187,7 +182,7 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
      */
     @Override
     public void updatePairedEndsScore(final SAMRecord rec, final ReadEndsForMarkDuplicates pairedEnds) {
-        if (md. FLOW_QUALITY_SUM_STRATEGY ) {
+        if (md. fbArgs.FLOW_QUALITY_SUM_STRATEGY ) {
             pairedEnds.score += computeFlowDuplicateScore(rec, pairedEnds.read1Coordinate, pairedEnds.read1Coordinate2);
         } else {
             md.updatePairedEndsScore(rec, pairedEnds);
@@ -206,7 +201,7 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
         if (areComparable) {
             areComparable = (!endCoorSignificant(lhs.read1Coordinate2, rhs.read1Coordinate2) ||
                     endCoorInRangeWithUncertainty(lhsRead1Coordinate2Min, lhsRead1Coordinate2Max,
-                            rhs.read1Coordinate2, md.UNPAIRED_END_UNCERTAINTY));
+                            rhs.read1Coordinate2, md.fbArgs.UNPAIRED_END_UNCERTAINTY));
         }
 
         return areComparable;
@@ -269,7 +264,7 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
         if ( storedScore == null ) {
             short score = 0;
 
-            score += (short) Math.min(getFlowSumOfBaseQualities(rec, md.FLOW_EFFECTIVE_QUALITY_THRESHOLD), Short.MAX_VALUE / 2);
+            score += (short) Math.min(getFlowSumOfBaseQualities(rec, md.fbArgs.FLOW_EFFECTIVE_QUALITY_THRESHOLD), Short.MAX_VALUE / 2);
 
             score += rec.getReadFailsVendorQualityCheckFlag() ? (short) (Short.MIN_VALUE / 2) : 0;
             storedScore = score;
@@ -285,10 +280,10 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
 
         if ( !flowOrder.isValid() ) {
             return unclippedCoor;
-        } else if ( certain && md.FLOW_SKIP_FIRST_N_FLOWS != 0 ) {
+        } else if ( certain && md.fbArgs.FLOW_SKIP_FIRST_N_FLOWS != 0 ) {
             final byte[] bases = rec.getReadBases();
             byte hmerBase = start ? bases[0] : bases[bases.length - 1];
-            int  hmersLeft = md.FLOW_SKIP_FIRST_N_FLOWS;      // number of hmer left to trim
+            int  hmersLeft = md.fbArgs.FLOW_SKIP_FIRST_N_FLOWS;      // number of hmer left to trim
 
             // advance flow order to base
             while ( flowOrder.current() != hmerBase ) {
@@ -315,14 +310,14 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
                 }
             }
             final int  coor = unclippedCoor + (start ? hmerSize : -hmerSize);
-            return md.USE_UNPAIRED_CLIPPED_END
+            return md.fbArgs.USE_UNPAIRED_CLIPPED_END
                     ? (start ? Math.max(coor, alignmentCoor) : Math.min(coor, alignmentCoor))
                     : coor;
-        } else if (md. FLOW_Q_IS_KNOWN_END ? isAdapterClipped(rec) : isAdapterClippedWithQ(rec) ) {
+        } else if (md. fbArgs.FLOW_Q_IS_KNOWN_END ? isAdapterClipped(rec) : isAdapterClippedWithQ(rec) ) {
             return unclippedCoor;
         } else if ( !certain && isQualityClipped(rec) ) {
             return END_INSIGNIFICANT_VALUE;
-        } else if (md.USE_UNPAIRED_CLIPPED_END) {
+        } else if (md.fbArgs.USE_UNPAIRED_CLIPPED_END) {
             return alignmentCoor;
         } else {
             return unclippedCoor;
@@ -361,12 +356,18 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
      */
     static private class FlowOrder {
 
-        final byte[] flowOrder; // the flow order byte string
+        byte[] flowOrder; // the flow order byte string
         int flowIndex = 0; // the current position on the flow order
 
         private FlowOrder(final SAMRecord rec) {
 
-            // find flow order
+            // access flow order from record's read group
+            if ( rec.getReadGroup() != null && rec.getReadGroup().getFlowOrder() != null ) {
+                flowOrder = rec.getReadGroup().getFlowOrder().getBytes();
+                return;
+            }
+
+            // fallback on finding a flow order elsewhere
             final SAMFileHeader header = rec.getHeader();
             for ( final SAMReadGroupRecord rg : header.getReadGroups() ) {
                 if (rg.getFlowOrder() != null) {
@@ -374,6 +375,8 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
                     return;
                 }
             }
+
+            // otherwise, no flow order
             flowOrder = null;
         }
 
