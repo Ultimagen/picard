@@ -158,6 +158,59 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
     }
 
     @Test
+    public void testFlowModeReverseReadsSameResults() throws IOException {
+        final File input = new File(TEST_DATA_DIR, "subsample.bam");
+        final File outfile   = File.createTempFile("test", ".quality_yield_metrics");
+        outfile.deleteOnExit();
+        final String[] args = new String[] {
+                "INPUT="  + input.getAbsolutePath(),
+                "OUTPUT=" + outfile.getAbsolutePath(),
+                "USE_ORIGINAL_QUALITIES=false",
+                "FLOW_MODE=true"
+        };
+
+        Assert.assertEquals(runPicardCommandLine(args), 0);
+
+        final File inputReverse = new File(TEST_DATA_DIR, "subsample.reverse.bam");
+        final File outfileReverse   = File.createTempFile("test", "reverse.quality_yield_metrics");
+        outfileReverse.deleteOnExit();
+        final String[] argsReverse = new String[] {
+                "INPUT="  + inputReverse.getAbsolutePath(),
+                "OUTPUT=" + outfileReverse.getAbsolutePath(),
+                "USE_ORIGINAL_QUALITIES=false",
+                "FLOW_MODE=true"
+        };
+        Assert.assertEquals(runPicardCommandLine(argsReverse), 0);
+
+        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, ?> output = new MetricsFile<>();
+        output.read(new FileReader(outfile));
+
+        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, ?> outputReverse = new MetricsFile<>();
+        outputReverse.read(new FileReader(outfileReverse));
+
+        Assert.assertEquals(output.getMetrics().size(),1);
+        Assert.assertEquals(outputReverse.getMetrics().size(),1);
+
+        final CollectQualityYieldMetrics.QualityYieldMetrics metrics = output.getMetrics().get(0);
+        final CollectQualityYieldMetrics.QualityYieldMetrics metricsReverse = outputReverse.getMetrics().get(0);
+        Assert.assertEquals(metrics.TOTAL_READS, metricsReverse.TOTAL_READS);
+        Assert.assertEquals(metrics.PF_READS, metricsReverse.PF_READS);
+        Assert.assertEquals(metrics.READ_LENGTH, metricsReverse.READ_LENGTH);
+        Assert.assertEquals(metrics.TOTAL_BASES, metricsReverse.TOTAL_BASES);
+        Assert.assertEquals(metrics.PF_BASES, metricsReverse.PF_BASES);
+        Assert.assertEquals(metrics.Q20_BASES, metricsReverse.Q20_BASES);
+        Assert.assertEquals(metrics.PF_Q20_BASES, metricsReverse.PF_Q20_BASES);
+        Assert.assertEquals(metrics.Q30_BASES, metricsReverse.Q30_BASES);
+        Assert.assertEquals(metrics.PF_Q30_BASES, metricsReverse.PF_Q30_BASES);
+        Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, metricsReverse.Q20_EQUIVALENT_YIELD);
+        Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, metricsReverse.PF_Q20_EQUIVALENT_YIELD);
+        Assert.assertEquals(((CollectQualityYieldMetrics.QualityYieldMetricsFlow)metrics).READ_LENGTH_AVG_Q_ABOVE_30,
+                ((CollectQualityYieldMetrics.QualityYieldMetricsFlow)metricsReverse).READ_LENGTH_AVG_Q_ABOVE_30);
+        Assert.assertEquals(((CollectQualityYieldMetrics.QualityYieldMetricsFlow)metrics).READ_LENGTH_AVG_Q_ABOVE_25,
+                ((CollectQualityYieldMetrics.QualityYieldMetricsFlow)metricsReverse).READ_LENGTH_AVG_Q_ABOVE_25);
+    }
+
+    @Test
     public void testMulti() throws IOException {
         final File input = new File(TEST_DATA_DIR, "insert_size_metrics_test.sam");
         final File reference = new File(CollectAlignmentSummaryMetricsTest.TEST_DATA_DIR, "summary_alignment_stats_test.fasta");
