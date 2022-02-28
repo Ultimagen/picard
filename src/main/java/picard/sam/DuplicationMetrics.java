@@ -65,7 +65,7 @@ public class DuplicationMetrics extends MergeableMetricBase {
     public long UNMAPPED_READS;
 
     /**
-     * The number of single end reads that were marked as duplicates.
+     * The number of fragments that were marked as duplicates.
      */
     @MergeByAdding
     public long UNPAIRED_READ_DUPLICATES;

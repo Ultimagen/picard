@@ -8,5 +8,5 @@ public interface MarkDuplicatesHelper {
 
     void generateDuplicateIndexes(boolean useBarcodes, boolean indexOpticalDuplicates);
     ReadEndsForMarkDuplicates buildReadEnds(SAMFileHeader header,long index, final SAMRecord rec, boolean useBarcodes);
-    void updatePairedEndsScore(SAMRecord rec, ReadEndsForMarkDuplicates pairedEnds);
+    short getReadDuplicateScore(SAMRecord rec, ReadEndsForMarkDuplicates pairedEnds);
 }

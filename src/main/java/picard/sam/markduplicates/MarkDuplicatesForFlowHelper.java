@@ -42,7 +42,7 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
 
     private void validateFlowParameteres() {
 
-        if ( md.fbArgs.UNPAIRED_END_UNCERTAINTY != 0 && !md.fbArgs.USE_END_IN_UNPAIRED_READS ) {
+        if ( md.flowBasedArguments.UNPAIRED_END_UNCERTAINTY != 0 && !md.flowBasedArguments.USE_END_IN_UNPAIRED_READS ) {
             throw new IllegalArgumentException("invalid parameter combination. UNPAIRED_END_UNCERTAINTY can not be specified when USE_END_IN_UNPAIRED_READS not specified");
         }
     }
@@ -165,12 +165,12 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
 
         // adjust start/end coordinates
         ends.read1Coordinate = getReadEndCoordinate(rec, !rec.getReadNegativeStrandFlag(), true);
-        if (md.fbArgs.USE_END_IN_UNPAIRED_READS) {
+        if (md.flowBasedArguments.USE_END_IN_UNPAIRED_READS) {
             ends.read2Coordinate = getReadEndCoordinate(rec, rec.getReadNegativeStrandFlag(), false);
         }
 
         // adjust score
-        if ( md.fbArgs.FLOW_QUALITY_SUM_STRATEGY ) {
+        if ( md.flowBasedArguments.FLOW_QUALITY_SUM_STRATEGY ) {
             ends.score = computeFlowDuplicateScore(rec, ends.read1Coordinate, ends.read2Coordinate);
         }
 
@@ -181,11 +181,11 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
      * update score for pairedEnds
      */
     @Override
-    public void updatePairedEndsScore(final SAMRecord rec, final ReadEndsForMarkDuplicates pairedEnds) {
-        if (md. fbArgs.FLOW_QUALITY_SUM_STRATEGY ) {
-            pairedEnds.score += computeFlowDuplicateScore(rec, pairedEnds.read1Coordinate, pairedEnds.read2Coordinate);
+    public short getReadDuplicateScore(final SAMRecord rec, final ReadEndsForMarkDuplicates pairedEnds) {
+        if (md.flowBasedArguments.FLOW_QUALITY_SUM_STRATEGY ) {
+            return computeFlowDuplicateScore(rec, pairedEnds.read1Coordinate, pairedEnds.read2Coordinate);
         } else {
-            md.updatePairedEndsScore(rec, pairedEnds);
+            return md.getReadDuplicateScore(rec, pairedEnds);
         }
     }
 
@@ -201,7 +201,7 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
         if (areComparable) {
             areComparable = (!endCoorSignificant(lhs.read2Coordinate, rhs.read2Coordinate) ||
                     endCoorInRangeWithUncertainty(lhsRead1Coordinate2Min, lhsRead1Coordinate2Max,
-                            rhs.read2Coordinate, md.fbArgs.UNPAIRED_END_UNCERTAINTY));
+                            rhs.read2Coordinate, md.flowBasedArguments.UNPAIRED_END_UNCERTAINTY));
         }
 
         return areComparable;
@@ -264,7 +264,7 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
         if ( storedScore == null ) {
             short score = 0;
 
-            score += (short) Math.min(getFlowSumOfBaseQualities(rec, md.fbArgs.FLOW_EFFECTIVE_QUALITY_THRESHOLD), Short.MAX_VALUE / 2);
+            score += (short) Math.min(getFlowSumOfBaseQualities(rec, md.flowBasedArguments.FLOW_EFFECTIVE_QUALITY_THRESHOLD), Short.MAX_VALUE / 2);
 
             score += rec.getReadFailsVendorQualityCheckFlag() ? (short) (Short.MIN_VALUE / 2) : 0;
             storedScore = score;
@@ -280,10 +280,10 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
 
         if ( !flowOrder.isValid() ) {
             return unclippedCoor;
-        } else if ( certain && md.fbArgs.FLOW_SKIP_FIRST_N_FLOWS != 0 ) {
+        } else if ( certain && md.flowBasedArguments.FLOW_SKIP_FIRST_N_FLOWS != 0 ) {
             final byte[] bases = rec.getReadBases();
             byte hmerBase = start ? bases[0] : bases[bases.length - 1];
-            int  hmersLeft = md.fbArgs.FLOW_SKIP_FIRST_N_FLOWS;      // number of hmer left to trim
+            int  hmersLeft = md.flowBasedArguments.FLOW_SKIP_FIRST_N_FLOWS;      // number of hmer left to trim
 
             // advance flow order to base
             while ( flowOrder.current() != hmerBase ) {
@@ -310,14 +310,14 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
                 }
             }
             final int  coor = unclippedCoor + (start ? hmerSize : -hmerSize);
-            return md.fbArgs.USE_UNPAIRED_CLIPPED_END
+            return md.flowBasedArguments.USE_UNPAIRED_CLIPPED_END
                     ? (start ? Math.max(coor, alignmentCoor) : Math.min(coor, alignmentCoor))
                     : coor;
-        } else if (md. fbArgs.FLOW_Q_IS_KNOWN_END ? isAdapterClipped(rec) : isAdapterClippedWithQ(rec) ) {
+        } else if (md.flowBasedArguments.FLOW_Q_IS_KNOWN_END ? isAdapterClipped(rec) : isAdapterClippedWithQ(rec) ) {
             return unclippedCoor;
         } else if ( !certain && isQualityClipped(rec) ) {
             return END_INSIGNIFICANT_VALUE;
-        } else if (md.fbArgs.USE_UNPAIRED_CLIPPED_END) {
+        } else if (md.flowBasedArguments.USE_UNPAIRED_CLIPPED_END) {
             return alignmentCoor;
         } else {
             return unclippedCoor;

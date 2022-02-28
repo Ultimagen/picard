@@ -218,7 +218,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram imp
     public String MOLECULAR_IDENTIFIER_TAG = null;
 
     @ArgumentCollection
-    public MarkDuplicatesForFlowArgumentCollection fbArgs = new MarkDuplicatesForFlowArgumentCollection();
+    public MarkDuplicatesForFlowArgumentCollection flowBasedArguments = new MarkDuplicatesForFlowArgumentCollection();
 
     protected SortingCollection<ReadEndsForMarkDuplicates> pairSort;
     protected SortingCollection<ReadEndsForMarkDuplicates> fragSort;
@@ -261,7 +261,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram imp
         final boolean useBarcodes = (null != BARCODE_TAG || null != READ_ONE_BARCODE_TAG || null != READ_TWO_BARCODE_TAG);
 
         // use flow based calculation helper?
-        if ( fbArgs.FLOW_MODE ) {
+        if ( flowBasedArguments.FLOW_MODE ) {
             calcHelper = new MarkDuplicatesForFlowHelper(this);
         }
 
@@ -624,7 +624,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram imp
                                     pairedEnds.orientation == ReadEnds.R);
                         }
 
-                        calcHelper.updatePairedEndsScore(rec, pairedEnds);
+                        pairedEnds.score += calcHelper.getReadDuplicateScore(rec, pairedEnds);
                         this.pairSort.add(pairedEnds);
                     }
                 }
@@ -648,8 +648,8 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram imp
     /**
      * update score for pairedEnds
      */
-    public void updatePairedEndsScore(SAMRecord rec, ReadEndsForMarkDuplicates pairedEnds) {
-        pairedEnds.score += DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
+    public short getReadDuplicateScore(SAMRecord rec, ReadEndsForMarkDuplicates pairedEnds) {
+        return DuplicateScoringStrategy.computeDuplicateScore(rec, this.DUPLICATE_SCORING_STRATEGY);
     }
 
 
