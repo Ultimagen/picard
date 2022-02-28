@@ -267,7 +267,7 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
 
     private CollectQualityYieldMetrics.QualityYieldMetrics createTestQualityYieldMetrics() {
 
-        CollectQualityYieldMetrics.QualityYieldMetrics      m = new CollectQualityYieldMetrics.QualityYieldMetrics();
+        CollectQualityYieldMetrics.QualityYieldMetrics      m = new CollectQualityYieldMetrics.QualityYieldMetrics(false);
 
         m.TOTAL_READS = 52;
         m.PF_READS = 52;

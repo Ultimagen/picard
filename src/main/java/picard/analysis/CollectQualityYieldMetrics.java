@@ -134,25 +134,21 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         // of bases if there are supplemental alignments in the input file.
         public final boolean includeSupplementalAlignments;
 
-        private final boolean flowMode;
-        private final HistogramGenerator histogramGenerator;
 
         // The metrics to be accumulated
-        private QualityYieldMetrics metrics;
+        private final QualityYieldMetrics metrics;
 
         public QualityYieldMetricsCollector(final boolean useOriginalQualities,
                                             final boolean includeSecondaryAlignments,
                                             final boolean includeSupplementalAlignments,
                                             final boolean flowMode) {
-            this.histogramGenerator = new HistogramGenerator(useOriginalQualities);
             this.useOriginalQualities = useOriginalQualities;
             this.includeSecondaryAlignments = includeSecondaryAlignments;
             this.includeSupplementalAlignments = includeSupplementalAlignments;
-            this.flowMode = flowMode;
             if (flowMode){
-                this.metrics = new QualityYieldMetricsFlow();
+                this.metrics = new QualityYieldMetricsFlow(useOriginalQualities);
             } else {
-                this.metrics = new QualityYieldMetrics();
+                this.metrics = new QualityYieldMetrics(useOriginalQualities);
             }
         }
 
@@ -200,21 +196,13 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
                     }
                 }
             }
-            histogramGenerator.addRecord(rec);
+            metrics.addRecordToHistogramGenerator(rec);
         }
 
         public void finish() {
             metrics.Q20_EQUIVALENT_YIELD = metrics.Q20_EQUIVALENT_YIELD / 20;
             metrics.PF_Q20_EQUIVALENT_YIELD = metrics.PF_Q20_EQUIVALENT_YIELD / 20;
-
             metrics.calculateDerivedFields();
-            // these metrics were added specifically for flow based reads and to avoid clutter we calculate it only on single
-            // ended reads.
-            if (flowMode) {
-                ((QualityYieldMetricsFlow)metrics).READ_LENGTH_AVG_Q_ABOVE_30 = histogramGenerator.calculateLQ(30, 1, 5);
-                ((QualityYieldMetricsFlow)metrics).READ_LENGTH_AVG_Q_ABOVE_25 = histogramGenerator.calculateLQ(25, 1, 5);
-            }
-
         }
 
         public void addMetricsToFile(final MetricsFile<QualityYieldMetrics, Integer> metricsFile) {
@@ -225,18 +213,43 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
 
     public static class QualityYieldMetricsFlow extends QualityYieldMetrics{
         /** The length of the longest interval on the reads where the average quality per-base is above (Q30) */
-        @NoMergingKeepsValue
+        @NoMergingIsDerived
         public long READ_LENGTH_AVG_Q_ABOVE_30 = 0;
 
         /** The length of the longest interval on the reads where the average quality per-base is above (Q25) */
-        @NoMergingKeepsValue
+        @NoMergingIsDerived
         public long READ_LENGTH_AVG_Q_ABOVE_25 = 0;
+
+        public QualityYieldMetricsFlow(){
+            this(false);
+        }
+
+        public QualityYieldMetricsFlow(final boolean useOriginalBaseQualities){
+            super(useOriginalBaseQualities);
+        }
+
+
+        @Override
+        public void calculateDerivedFields() {
+            super.calculateDerivedFields();
+            this.READ_LENGTH_AVG_Q_ABOVE_25 = histogramGenerator.calculateLQ(25, 1,5);
+            this.READ_LENGTH_AVG_Q_ABOVE_30 = histogramGenerator.calculateLQ(30, 1,5);
+        }
 
     }
     /**
      * A set of metrics used to describe the general quality of a BAM file
      */
     public static class QualityYieldMetrics extends MergeableMetricBase {
+
+        public QualityYieldMetrics(final boolean useOriginalQualities) {
+            super();
+            histogramGenerator = new HistogramGenerator(useOriginalQualities);
+        }
+        public QualityYieldMetrics() {
+            this(false);
+        }
+
 
         /**
          * The total number of reads in the input file
@@ -304,13 +317,19 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
         @MergeByAdding
         public long PF_Q20_EQUIVALENT_YIELD = 0;
 
+        @MergingIsManual
+        protected final HistogramGenerator histogramGenerator;
+
+
         @Override
         public void calculateDerivedFields() {
             super.calculateDerivedFields();
-
             this.READ_LENGTH = this.TOTAL_READS == 0 ? 0 : (int) (this.TOTAL_BASES / this.TOTAL_READS);
         }
 
+        protected void addRecordToHistogramGenerator(SAMRecord rec) {
+            histogramGenerator.addRecord(rec);
+        }
     }
 
 }

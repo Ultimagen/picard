@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public final class HistogramGenerator {
+final class HistogramGenerator {
     final boolean useOriginalQualities;
     int maxLengthSoFar = 0;
     double[] firstReadTotalsByCycle  = new double[maxLengthSoFar];
@@ -70,49 +70,27 @@ public final class HistogramGenerator {
         }
     }
 
-    private void ensureArraysBigEnough(final int length) {
-        if (length > maxLengthSoFar) {
-            firstReadTotalsByCycle  = Arrays.copyOf(firstReadTotalsByCycle, length);
-            firstReadTotalProbsByCycle  = Arrays.copyOf(firstReadTotalProbsByCycle, length);
-            firstReadCountsByCycle  = Arrays.copyOf(firstReadCountsByCycle, length);
-            secondReadTotalsByCycle = Arrays.copyOf(secondReadTotalsByCycle , length);
-            secondReadTotalProbsByCycle = Arrays.copyOf(secondReadTotalProbsByCycle , length);
-            secondReadCountsByCycle = Arrays.copyOf(secondReadCountsByCycle, length);
-            maxLengthSoFar = length;
-        }
-    }
-
-    Histogram<Integer> getMeanQualityHistogram() {
-        final String label = useOriginalQualities ? "MEAN_ORIGINAL_QUALITY" : "MEAN_QUALITY";
-        final Histogram<Integer> meanQualities = new Histogram<Integer>("CYCLE", label);
-
-        int firstReadLength = 0;
-
-        for (int cycle=0; cycle < firstReadTotalsByCycle.length; ++cycle) {
-            if (firstReadTotalsByCycle[cycle] > 0) {
-                meanQualities.increment(cycle, firstReadTotalsByCycle[cycle] / firstReadCountsByCycle[cycle]);
-                firstReadLength = cycle;
+    /**
+     * Used to merge two histogram generators together
+     * @param other
+     */
+    public void addOtherHistogramGenerator(final HistogramGenerator other){
+        if (other!=null){
+            ensureArraysBigEnough(other.maxLengthSoFar);
+            for (int i = 0; i < maxLengthSoFar; i++){
+                firstReadCountsByCycle[i] += other.firstReadCountsByCycle[i];
+                secondReadCountsByCycle[i] += other.secondReadCountsByCycle[i];
+                firstReadTotalsByCycle[i] += other.firstReadTotalsByCycle[i];
+                secondReadTotalsByCycle[i] += other.secondReadTotalsByCycle[i];
+                firstReadTotalProbsByCycle[i] += other.firstReadTotalProbsByCycle[i];
+                secondReadTotalProbsByCycle[i] += other.secondReadTotalProbsByCycle[i];
             }
         }
-
-        for (int i=0; i< secondReadTotalsByCycle.length; ++i) {
-            if (secondReadCountsByCycle[i] > 0) {
-                final int cycle = firstReadLength + i;
-                meanQualities.increment(cycle, secondReadTotalsByCycle[i] / secondReadCountsByCycle[i]);
-            }
-        }
-
-        return meanQualities;
-    }
-
-    boolean isEmpty() {
-        return maxLengthSoFar == 0;
     }
 
     public int calculateLQ(final int threshold, int readInPair, int spanningWindowLength){
-        double errorProbThreshold = QualityUtil.getErrorProbabilityFromPhredScore(threshold);
+        final double errorProbThreshold = QualityUtil.getErrorProbabilityFromPhredScore(threshold);
         final int OFFSET = 10;
-        int cur_result = 1 ;
         List<Double> result = new ArrayList<>();
         List<Long> weights = new ArrayList<>();
         double[] accumulator;
@@ -169,4 +147,45 @@ public final class HistogramGenerator {
         }
         return curBestIntervalLength;
     }
+
+    boolean isEmpty() {
+        return maxLengthSoFar == 0;
+    }
+
+
+    private void ensureArraysBigEnough(final int length) {
+        if (length > maxLengthSoFar) {
+            firstReadTotalsByCycle  = Arrays.copyOf(firstReadTotalsByCycle, length);
+            firstReadTotalProbsByCycle  = Arrays.copyOf(firstReadTotalProbsByCycle, length);
+            firstReadCountsByCycle  = Arrays.copyOf(firstReadCountsByCycle, length);
+            secondReadTotalsByCycle = Arrays.copyOf(secondReadTotalsByCycle , length);
+            secondReadTotalProbsByCycle = Arrays.copyOf(secondReadTotalProbsByCycle , length);
+            secondReadCountsByCycle = Arrays.copyOf(secondReadCountsByCycle, length);
+            maxLengthSoFar = length;
+        }
+    }
+
+    Histogram<Integer> getMeanQualityHistogram() {
+        final String label = useOriginalQualities ? "MEAN_ORIGINAL_QUALITY" : "MEAN_QUALITY";
+        final Histogram<Integer> meanQualities = new Histogram<Integer>("CYCLE", label);
+
+        int firstReadLength = 0;
+
+        for (int cycle=0; cycle < firstReadTotalsByCycle.length; ++cycle) {
+            if (firstReadTotalsByCycle[cycle] > 0) {
+                meanQualities.increment(cycle, firstReadTotalsByCycle[cycle] / firstReadCountsByCycle[cycle]);
+                firstReadLength = cycle;
+            }
+        }
+
+        for (int i=0; i< secondReadTotalsByCycle.length; ++i) {
+            if (secondReadCountsByCycle[i] > 0) {
+                final int cycle = firstReadLength + i;
+                meanQualities.increment(cycle, secondReadTotalsByCycle[i] / secondReadCountsByCycle[i]);
+            }
+        }
+
+        return meanQualities;
+    }
+
 }
