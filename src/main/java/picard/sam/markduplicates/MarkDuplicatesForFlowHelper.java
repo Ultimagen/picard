@@ -113,11 +113,11 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
                 nextChunk.add(next);
                 containsPairs = containsPairs || next.isPaired();
                 containsFrags = containsFrags || !next.isPaired();
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT_VALUE) {
-                    nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read1Coordinate2);
-                    nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read1Coordinate2);
+                if ( next.read2Coordinate != END_INSIGNIFICANT_VALUE) {
+                    nextChunkRead1Coordinate2Min = Math.min(nextChunkRead1Coordinate2Min, next.read2Coordinate);
+                    nextChunkRead1Coordinate2Max = Math.max(nextChunkRead1Coordinate2Max, next.read2Coordinate);
 
-                    if ( firstOfNextChunk.read1Coordinate2 == END_INSIGNIFICANT_VALUE)
+                    if ( firstOfNextChunk.read2Coordinate == END_INSIGNIFICANT_VALUE)
                         firstOfNextChunk = next;
                 }
             } else {
@@ -127,8 +127,8 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
                 nextChunk.clear();
                 nextChunk.add(next);
                 firstOfNextChunk = next;
-                if ( next.read1Coordinate2 != END_INSIGNIFICANT_VALUE)
-                    nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read1Coordinate2;
+                if ( next.read2Coordinate != END_INSIGNIFICANT_VALUE)
+                    nextChunkRead1Coordinate2Min = nextChunkRead1Coordinate2Max = next.read2Coordinate;
                 else {
                     nextChunkRead1Coordinate2Min = Integer.MAX_VALUE;
                     nextChunkRead1Coordinate2Max = Integer.MIN_VALUE;
@@ -166,12 +166,12 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
         // adjust start/end coordinates
         ends.read1Coordinate = getReadEndCoordinate(rec, !rec.getReadNegativeStrandFlag(), true);
         if (md.fbArgs.USE_END_IN_UNPAIRED_READS) {
-            ends.read1Coordinate2 = getReadEndCoordinate(rec, rec.getReadNegativeStrandFlag(), false);
+            ends.read2Coordinate = getReadEndCoordinate(rec, rec.getReadNegativeStrandFlag(), false);
         }
 
         // adjust score
         if ( md.fbArgs.FLOW_QUALITY_SUM_STRATEGY ) {
-            ends.score = computeFlowDuplicateScore(rec, ends.read1Coordinate, ends.read1Coordinate2);
+            ends.score = computeFlowDuplicateScore(rec, ends.read1Coordinate, ends.read2Coordinate);
         }
 
         return ends;
@@ -183,7 +183,7 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
     @Override
     public void updatePairedEndsScore(final SAMRecord rec, final ReadEndsForMarkDuplicates pairedEnds) {
         if (md. fbArgs.FLOW_QUALITY_SUM_STRATEGY ) {
-            pairedEnds.score += computeFlowDuplicateScore(rec, pairedEnds.read1Coordinate, pairedEnds.read1Coordinate2);
+            pairedEnds.score += computeFlowDuplicateScore(rec, pairedEnds.read1Coordinate, pairedEnds.read2Coordinate);
         } else {
             md.updatePairedEndsScore(rec, pairedEnds);
         }
@@ -199,9 +199,9 @@ public class MarkDuplicatesForFlowHelper implements MarkDuplicatesHelper {
         boolean areComparable = md.areComparableForDuplicates(lhs, rhs, compareRead2, useBarcodes);
 
         if (areComparable) {
-            areComparable = (!endCoorSignificant(lhs.read1Coordinate2, rhs.read1Coordinate2) ||
+            areComparable = (!endCoorSignificant(lhs.read2Coordinate, rhs.read2Coordinate) ||
                     endCoorInRangeWithUncertainty(lhsRead1Coordinate2Min, lhsRead1Coordinate2Max,
-                            rhs.read1Coordinate2, md.fbArgs.UNPAIRED_END_UNCERTAINTY));
+                            rhs.read2Coordinate, md.fbArgs.UNPAIRED_END_UNCERTAINTY));
         }
 
         return areComparable;

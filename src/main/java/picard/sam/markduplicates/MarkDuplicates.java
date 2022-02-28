@@ -580,7 +580,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram imp
                     } else {
                         final int matesRefIndex = fragmentEnd.read1ReferenceIndex;
                         final int matesCoordinate = fragmentEnd.read1Coordinate;
-                        final int matesCoordinate2 = fragmentEnd.read1Coordinate2;
 
                         // Set orientationForOpticalDuplicates, which always goes by the first then the second end for the strands.  NB: must do this
                         // before updating the orientation later.
@@ -620,7 +619,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram imp
                             pairedEnds.read2IndexInFile = pairedEnds.read1IndexInFile;
                             pairedEnds.read1ReferenceIndex = matesRefIndex;
                             pairedEnds.read1Coordinate = matesCoordinate;
-                            pairedEnds.read1Coordinate2 = matesCoordinate2;
                             pairedEnds.read1IndexInFile = indexForRead;
                             pairedEnds.orientation = ReadEnds.getOrientationByte(rec.getReadNegativeStrandFlag(),
                                     pairedEnds.orientation == ReadEnds.R);
@@ -1010,9 +1008,6 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram imp
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.read1Coordinate - rhs.read1Coordinate;
-            }
-            if (compareDifference == 0) {
-                compareDifference = lhs.read1Coordinate2 - rhs.read1Coordinate2;
             }
             if (compareDifference == 0) {
                 compareDifference = lhs.orientation - rhs.orientation;
