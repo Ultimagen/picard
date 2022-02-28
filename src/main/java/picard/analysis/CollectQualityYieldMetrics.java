@@ -105,7 +105,11 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
     @Override
     protected void setup(final SAMFileHeader header, final File samFile) {
         IOUtil.assertFileIsWritable(OUTPUT);
-        this.collector = new QualityYieldMetricsCollector(USE_ORIGINAL_QUALITIES, INCLUDE_SECONDARY_ALIGNMENTS, INCLUDE_SUPPLEMENTAL_ALIGNMENTS, FLOW_MODE);
+        if (FLOW_MODE) {
+            this.collector = new QualityYieldMetricsCollector(USE_ORIGINAL_QUALITIES, INCLUDE_SECONDARY_ALIGNMENTS, INCLUDE_SUPPLEMENTAL_ALIGNMENTS, true);
+        } else {
+            this.collector = new QualityYieldMetricsCollector(USE_ORIGINAL_QUALITIES, INCLUDE_SECONDARY_ALIGNMENTS, INCLUDE_SUPPLEMENTAL_ALIGNMENTS);
+        }
     }
 
     @Override
@@ -137,6 +141,12 @@ public class CollectQualityYieldMetrics extends SinglePassSamProgram {
 
         // The metrics to be accumulated
         private final QualityYieldMetrics metrics;
+
+        public QualityYieldMetricsCollector(final boolean useOriginalQualities,
+                                            final boolean includeSecondaryAlignments,
+                                            final boolean includeSupplementalAlignments){
+            this(useOriginalQualities, includeSecondaryAlignments, includeSupplementalAlignments, false);
+        }
 
         public QualityYieldMetricsCollector(final boolean useOriginalQualities,
                                             final boolean includeSecondaryAlignments,

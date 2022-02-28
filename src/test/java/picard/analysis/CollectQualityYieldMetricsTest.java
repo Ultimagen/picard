@@ -136,12 +136,12 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
 
         Assert.assertEquals(runPicardCommandLine(args), 0);
 
-        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, ?> output = new MetricsFile<>();
+        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetricsFlow, ?> output = new MetricsFile<>();
         output.read(new FileReader(outfile));
 
         Assert.assertEquals(output.getMetrics().size(),1);
 
-        final CollectQualityYieldMetrics.QualityYieldMetrics metrics = output.getMetrics().get(0);
+        final CollectQualityYieldMetrics.QualityYieldMetricsFlow metrics = output.getMetrics().get(0);
         Assert.assertEquals(metrics.TOTAL_READS, 56);
         Assert.assertEquals(metrics.PF_READS, 56);
         Assert.assertEquals(metrics.READ_LENGTH, 285);
@@ -153,8 +153,8 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.PF_Q30_BASES, 14786);
         Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 30589);
         Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 30589);
-        Assert.assertEquals(((CollectQualityYieldMetrics.QualityYieldMetricsFlow)metrics).READ_LENGTH_AVG_Q_ABOVE_30, 101);
-        Assert.assertEquals(((CollectQualityYieldMetrics.QualityYieldMetricsFlow)metrics).READ_LENGTH_AVG_Q_ABOVE_25, 195);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_30, 101);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_25, 195);
     }
 
     @Test

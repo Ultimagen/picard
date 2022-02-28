@@ -90,7 +90,8 @@ final class HistogramGenerator {
 
     public int calculateLQ(final int threshold, int readInPair, int spanningWindowLength){
         final double errorProbThreshold = QualityUtil.getErrorProbabilityFromPhredScore(threshold);
-        final int OFFSET = 10;
+        final int skipBases = 10; //qualities of the first bases are ignored (inference issues
+        final int minimalCount = 25;
         List<Double> result = new ArrayList<>();
         List<Long> weights = new ArrayList<>();
         double[] accumulator;
@@ -102,8 +103,8 @@ final class HistogramGenerator {
             accumulator = secondReadTotalProbsByCycle;
             counts = secondReadCountsByCycle;
         }
-        for (int i = OFFSET+1; i < accumulator.length; i++ ){
-            if (counts[i] < 25){
+        for (int i = skipBases+1; i < accumulator.length; i++ ){
+            if (counts[i] < minimalCount){
                 break;
             }
             result.add(accumulator[i]/counts[i]);

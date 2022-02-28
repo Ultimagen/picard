@@ -269,7 +269,7 @@ public class DownsampleSam extends CommandLineProgram {
         final SAMFileWriter out = new SAMFileWriterFactory().makeWriter(header, true, OUTPUT, referenceSequence.getReferenceFile());
         final ProgressLogger progress = new ProgressLogger(log, (int) 1e7, "Wrote");
         final DownsamplingIterator iterator = DownsamplingIteratorFactory.make(in, STRATEGY, PROBABILITY, ACCURACY, RANDOM_SEED);
-        final QualityYieldMetricsCollector metricsCollector = new QualityYieldMetricsCollector(true, false, false, false);
+        final QualityYieldMetricsCollector metricsCollector = new QualityYieldMetricsCollector(true, false, false);
 
         while (iterator.hasNext()) {
             final SAMRecord rec = iterator.next();
