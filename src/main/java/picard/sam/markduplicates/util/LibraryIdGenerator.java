@@ -30,6 +30,7 @@ import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.util.Histogram;
 import picard.sam.DuplicationMetrics;
+import picard.sam.DuplicationMetricsFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -61,7 +62,7 @@ public class LibraryIdGenerator {
             final String library = LibraryIdGenerator.getReadGroupLibraryName(readGroup);
             DuplicationMetrics metrics = metricsByLibrary.get(library);
             if (metrics == null) {
-                metrics = new DuplicationMetrics();
+                metrics = DuplicationMetricsFactory.createForLibrary(readGroup);
                 metrics.LIBRARY = library;
                 metricsByLibrary.put(library, metrics);
             }

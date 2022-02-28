@@ -34,7 +34,7 @@ import org.testng.annotations.Test;
 public class DuplicationMetricsTest {
 
     private DuplicationMetrics emptyMetrics() {
-        final DuplicationMetrics metric = new DuplicationMetrics();
+        final DuplicationMetrics metric = DuplicationMetricsFactory.createDefault();
         metric.LIBRARY = "LIBRARY";
         metric.UNPAIRED_READS_EXAMINED = 0;
         metric.READ_PAIRS_EXAMINED = 0;
@@ -48,7 +48,7 @@ public class DuplicationMetricsTest {
     }
     
     private DuplicationMetrics nonEmptyMetrics(final int scale) {
-        final DuplicationMetrics metric = new DuplicationMetrics();
+        final DuplicationMetrics metric = DuplicationMetricsFactory.createDefault();
         metric.LIBRARY = "LIBRARY";
         metric.UNPAIRED_READS_EXAMINED = 1000 * scale;
         metric.READ_PAIRS_EXAMINED = 1000 * scale;

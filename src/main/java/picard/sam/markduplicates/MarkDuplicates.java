@@ -351,7 +351,7 @@ public class MarkDuplicates extends AbstractMarkDuplicatesCommandLineProgram imp
                 if (isDuplicate) {
                     rec.setDuplicateReadFlag(true);
 
-                    AbstractMarkDuplicatesCommandLineProgram.addDuplicateReadToMetrics(rec, metrics);
+                    metrics.addDuplicateReadToMetrics(rec);
                 } else {
                     rec.setDuplicateReadFlag(false);
                 }

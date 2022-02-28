@@ -93,7 +93,7 @@ public class CollectDuplicateMetrics extends SinglePassSamProgram {
         final boolean isDuplicate = rec.getDuplicateReadFlag();
 
         if (isDuplicate) {
-            AbstractMarkDuplicatesCommandLineProgram.addDuplicateReadToMetrics(rec, metrics);
+            metrics.addDuplicateReadToMetrics(rec);
         }
     }
 
