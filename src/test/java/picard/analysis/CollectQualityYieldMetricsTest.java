@@ -182,17 +182,17 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         };
         Assert.assertEquals(runPicardCommandLine(argsReverse), 0);
 
-        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, ?> output = new MetricsFile<>();
+        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetricsFlow, ?> output = new MetricsFile<>();
         output.read(new FileReader(outfile));
 
-        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetrics, ?> outputReverse = new MetricsFile<>();
+        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetricsFlow, ?> outputReverse = new MetricsFile<>();
         outputReverse.read(new FileReader(outfileReverse));
 
         Assert.assertEquals(output.getMetrics().size(),1);
         Assert.assertEquals(outputReverse.getMetrics().size(),1);
 
-        final CollectQualityYieldMetrics.QualityYieldMetrics metrics = output.getMetrics().get(0);
-        final CollectQualityYieldMetrics.QualityYieldMetrics metricsReverse = outputReverse.getMetrics().get(0);
+        final CollectQualityYieldMetrics.QualityYieldMetricsFlow metrics = output.getMetrics().get(0);
+        final CollectQualityYieldMetrics.QualityYieldMetricsFlow metricsReverse = outputReverse.getMetrics().get(0);
         Assert.assertEquals(metrics.TOTAL_READS, metricsReverse.TOTAL_READS);
         Assert.assertEquals(metrics.PF_READS, metricsReverse.PF_READS);
         Assert.assertEquals(metrics.READ_LENGTH, metricsReverse.READ_LENGTH);
@@ -204,10 +204,10 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.PF_Q30_BASES, metricsReverse.PF_Q30_BASES);
         Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, metricsReverse.Q20_EQUIVALENT_YIELD);
         Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, metricsReverse.PF_Q20_EQUIVALENT_YIELD);
-        Assert.assertEquals(((CollectQualityYieldMetrics.QualityYieldMetricsFlow)metrics).READ_LENGTH_AVG_Q_ABOVE_30,
-                ((CollectQualityYieldMetrics.QualityYieldMetricsFlow)metricsReverse).READ_LENGTH_AVG_Q_ABOVE_30);
-        Assert.assertEquals(((CollectQualityYieldMetrics.QualityYieldMetricsFlow)metrics).READ_LENGTH_AVG_Q_ABOVE_25,
-                ((CollectQualityYieldMetrics.QualityYieldMetricsFlow)metricsReverse).READ_LENGTH_AVG_Q_ABOVE_25);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_30,
+                metricsReverse.READ_LENGTH_AVG_Q_ABOVE_30);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_25,
+                metricsReverse.READ_LENGTH_AVG_Q_ABOVE_25);
     }
 
     @Test
@@ -245,6 +245,45 @@ public class CollectQualityYieldMetricsTest extends CommandLineProgramTest {
         Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 6497);
         Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 6497);
     }
+
+    @Test
+    public void testMultiFlow() throws IOException {
+        final File input = new File(TEST_DATA_DIR, "subsample.bam");
+        final File outfile   = File.createTempFile("test", ".quality_yield_metrics");
+        outfile.deleteOnExit();
+        final String[] args = new String[] {
+                "INPUT="  + input.getAbsolutePath(),
+                "OUTPUT=" + outfile.getAbsolutePath(),
+                "METRIC_ACCUMULATION_LEVEL=" + MetricAccumulationLevel.ALL_READS.name(),
+                "PROGRAM=null",
+                "PROGRAM=" + CollectMultipleMetrics.Program.CollectQualityYieldMetrics.name(),
+                "EXTRA_ARGUMENT=CollectQualityYieldMetrics::FLOW_MODE"
+        };
+
+        Assert.assertEquals(runPicardCommandLine(CollectMultipleMetrics.class.getSimpleName(), args), 0);
+
+        final MetricsFile<CollectQualityYieldMetrics.QualityYieldMetricsFlow, ?> output = new MetricsFile<>();
+        output.read(new FileReader(outfile + ".quality_yield_metrics"));
+
+        Assert.assertEquals(output.getMetrics().size(),1);
+
+        final CollectQualityYieldMetrics.QualityYieldMetricsFlow metrics = output.getMetrics().get(0);
+        Assert.assertEquals(metrics.TOTAL_READS, 56);
+        Assert.assertEquals(metrics.PF_READS, 56);
+        Assert.assertEquals(metrics.READ_LENGTH, 285);
+        Assert.assertEquals(metrics.TOTAL_BASES, 15983);
+        Assert.assertEquals(metrics.PF_BASES, 15983);
+        Assert.assertEquals(metrics.Q20_BASES, 15494);
+        Assert.assertEquals(metrics.PF_Q20_BASES, 15494);
+        Assert.assertEquals(metrics.Q30_BASES, 14786);
+        Assert.assertEquals(metrics.PF_Q30_BASES, 14786);
+        Assert.assertEquals(metrics.Q20_EQUIVALENT_YIELD, 30589);
+        Assert.assertEquals(metrics.PF_Q20_EQUIVALENT_YIELD, 30589);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_30, 101);
+        Assert.assertEquals(metrics.READ_LENGTH_AVG_Q_ABOVE_25, 195);
+
+    }
+
 
     @Test
     public void testMerge() {
