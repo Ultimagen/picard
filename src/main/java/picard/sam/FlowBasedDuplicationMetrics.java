@@ -4,7 +4,7 @@ import htsjdk.samtools.SAMRecord;
 import picard.sam.markduplicates.util.AbstractMarkDuplicatesCommandLineProgram;
 import picard.util.MathUtil;
 
-public class FlowBasedDuplucationMetrics extends DuplicationMetrics {
+public class FlowBasedDuplicationMetrics extends DuplicationMetrics {
 
     /*
      * count of single end reads where the exact fragment length is known (i.e. clipped)

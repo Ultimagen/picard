@@ -1,7 +1,6 @@
 package picard.sam;
 
 import htsjdk.samtools.SAMReadGroupRecord;
-import jdk.jfr.internal.Utils;
 import picard.sam.markduplicates.util.LibraryIdGenerator;
 
 import java.util.List;
@@ -28,7 +27,7 @@ public class DuplicationMetricsFactory {
         if ( readGroup.getFlowOrder() == null ) {
             return new DuplicationMetrics();
         } else {
-            return new FlowBasedDuplucationMetrics();
+            return new FlowBasedDuplicationMetrics();
         }
     }
 
