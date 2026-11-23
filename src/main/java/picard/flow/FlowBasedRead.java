@@ -1,6 +1,7 @@
 package picard.flow;
 
 import htsjdk.samtools.CigarOperator;
+import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMRecord;
 import htsjdk.samtools.SAMUtils;
 import picard.PicardException;
@@ -15,6 +16,7 @@ public class FlowBasedRead {
     final private static String FLOW_MATRIX_TAG_NAME = "tp";
     final private static String FLOW_MATRIX_T0_TAG_NAME = "t0";
     final public static String MAX_CLASS_READ_GROUP_TAG = "mc";
+    final public static String MAX_QUAL_READ_GROUP_TAG = "mq";
 
     /**
      * The sam record from which this flow based read originated
@@ -70,8 +72,8 @@ public class FlowBasedRead {
         this.maxHmer = maxHmer;
         this.samRecord = samRecord;
 
-        // read flow matrix in.
-        if (samRecord.hasAttribute(FLOW_MATRIX_TAG_NAME)) {
+        // read flow matrix in. A missing tp is valid (all zeros) when the read group declares mq.
+        if (samRecord.hasAttribute(FLOW_MATRIX_TAG_NAME) || getMaxQualChar(samRecord) != null) {
             readFlowMatrix(flowOrder);
         } else {
             throw new PicardException("read missing flow matrix attribute: " + FLOW_MATRIX_TAG_NAME);
@@ -133,7 +135,7 @@ public class FlowBasedRead {
 
         // access qual, convert to flow representation
         final byte[] quals = samRecord.getBaseQualities();
-        final byte[] tp = samRecord.getSignedByteArrayAttribute(FLOW_MATRIX_TAG_NAME);
+        final byte[] tp = decodeTp(samRecord);
         boolean specialTreatmentForZeroCalls = false;
         final byte[] t0 = SAMUtils.fastqToPhred(samRecord.getStringAttribute(FLOW_MATRIX_T0_TAG_NAME));
         final double[] t0probs = new double[quals.length];
@@ -181,6 +183,68 @@ public class FlowBasedRead {
         applyFilteringFlowMatrix();
     }
 
+
+    private static Character getMaxQualChar(final SAMRecord rec) {
+        final SAMReadGroupRecord rg = rec.getReadGroup();
+        final String mq = (rg == null) ? null : rg.getAttribute(MAX_QUAL_READ_GROUP_TAG);
+        if (mq == null) {
+            return null;
+        }
+        if (mq.length() != 1) {
+            throw new PicardException("Illegal @RG " + MAX_QUAL_READ_GROUP_TAG + " value '" + mq + "' (expected a single QUAL character): " + rec.getReadName());
+        }
+        return mq.charAt(0);
+    }
+
+    /**
+     * Decode the tp tag into a dense per-base array of -1/0/+1 (same orientation as SEQ/QUAL).
+     * Supports the old format (tp:B:c, one value per base) and the sparse format (tp:Z holding only
+     * '+' and '-', with 0 implied for bases whose QUAL equals the read group's mq; an absent tag means all zeros).
+     *
+     * @throws PicardException if the tag is malformed, or sparse decoding is required but mq is not declared
+     */
+    public static byte[] decodeTp(final SAMRecord rec) {
+        final Object attr = rec.getAttribute(FLOW_MATRIX_TAG_NAME);
+        final byte[] quals = rec.getBaseQualities();
+        if (attr instanceof byte[]) {
+            final byte[] tp = (byte[]) attr;
+            if (tp.length != quals.length) {
+                throw new PicardException("Illegal read len(tp)!=len(qual): " + rec.getReadName());
+            }
+            return tp;
+        }
+        if (attr != null && !(attr instanceof String)) {
+            throw new PicardException("Unsupported type for tag " + FLOW_MATRIX_TAG_NAME + " (expected Z or B:c): " + rec.getReadName());
+        }
+        final String sparse = (String) attr;
+        final Character mq = getMaxQualChar(rec);
+        if (mq == null) {
+            throw new PicardException("Sparse tp requires @RG " + MAX_QUAL_READ_GROUP_TAG + ": " + rec.getReadName());
+        }
+        final int mqPhred = mq - 33;
+        final byte[] tp = new byte[quals.length];
+        int next = 0;
+        for (int i = 0; i < quals.length; i++) {
+            if (quals[i] == mqPhred) {
+                continue;
+            }
+            if (sparse == null || next >= sparse.length()) {
+                throw new PicardException("tp is too short for the number of non-" + MAX_QUAL_READ_GROUP_TAG + " bases: " + rec.getReadName());
+            }
+            final char c = sparse.charAt(next++);
+            if (c == '+') {
+                tp[i] = 1;
+            } else if (c == '-') {
+                tp[i] = -1;
+            } else {
+                throw new PicardException("Illegal character '" + c + "' in tp: " + rec.getReadName());
+            }
+        }
+        if (sparse != null && next != sparse.length()) {
+            throw new PicardException("tp has leftover characters after decoding: " + rec.getReadName());
+        }
+        return tp;
+    }
 
     //convert qualities from the single hmer to a column in a flow matrix
     private void parseSingleHmer(final double[] probs, final byte[] tp, final int flowIdx,
